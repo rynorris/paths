@@ -38,16 +38,16 @@ fn main() {
     };
 
     let mut camera = Camera::new(WIDTH, HEIGHT);
-    camera.location.y = -250.0;
-    camera.location.z = -250.0;
-    camera.focal_length = 200.0;
+    camera.location.y = -450.0;
+    camera.location.z = -450.0;
+    camera.focal_length = 400.0;
     camera.set_orientation(0.0, 0.0, -0.8);
 
     let sphere1 = Object {
         shape: Box::new(Sphere{ center: Vector3::new(0.0, 1000.0, 200.0), radius: 1000.0 }),
         material: Material{
             emittance: Colour::BLACK,
-            reflectance: Colour::WHITE,
+            reflectance: Colour::rgb(0.18, 0.18, 0.18),
         },
     };
 
@@ -62,14 +62,13 @@ fn main() {
     let light1 = Object {
         shape: Box::new(Sphere{ center: Vector3::new(1000.0, -1000.0, 100.0), radius: 800.0 }),
         material: Material{
-            emittance: Colour{ r: 1.0, g: 1.0, b: 1.0 },
+            emittance: Colour{ r: 2.0, g: 2.0, b: 2.0 },
             reflectance: Colour::BLACK,
         },
     };
 
-    let scene: Scene = Scene{ objects: vec![sphere1, sphere2, light1 ], };
+    let scene: Scene = Scene{ objects: vec![sphere1, sphere2, light1], ambient_light: Colour::rgb(0.05, 0.05, 0.05) };
     let mut renderer = Renderer::new(scene, camera);
-    renderer.set_ambient_light(Colour{ r: 0.05, g: 0.05, b: 0.05 });
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
 
@@ -86,9 +85,13 @@ fn main() {
 
         for ix in 0 .. image.pixels.len() {
             let colour = image.pixels[ix];
-            texture_buffer[ix * 3] = (colour.r * 256.0) as u8;
-            texture_buffer[ix * 3 + 1] = (colour.g * 256.0) as u8;
-            texture_buffer[ix * 3 + 2] = (colour.b * 256.0) as u8;
+            let (r, g, b) = colour.to_bytes();
+            texture_buffer[ix * 3] = r;
+            texture_buffer[ix * 3 + 1] = g;
+            texture_buffer[ix * 3 + 2] = b;
+            if ix == 0 {
+                println!("Rendered (0,0): {:?}, {:?}", colour, &texture_buffer[0..3]);
+            }
         }
 
         output_texture.update(None, texture_buffer.as_slice(), (WIDTH * 3) as usize).expect("Failed to update texture");

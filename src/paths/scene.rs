@@ -62,6 +62,7 @@ impl Shape for Sphere {
 
 pub struct Scene {
     pub objects: Vec<Object>,
+    pub ambient_light: Colour,
 }
 
 impl Scene {

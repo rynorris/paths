@@ -22,6 +22,29 @@ impl Colour {
             b: rng.gen(),
         }
     }
+
+    pub fn rgb(r: f64, g: f64, b: f64) -> Colour {
+        Colour{ r, g, b }
+    }
+
+    pub fn to_bytes(&self) -> (u8, u8, u8) {
+        (
+            Colour::component_to_byte(self.r),
+            Colour::component_to_byte(self.g),
+            Colour::component_to_byte(self.b),
+            )
+    }
+
+    fn component_to_byte(x: f64) -> u8 {
+        let rounded = (x * 256.0) as i16;
+        if rounded >= 256 {
+            255
+        } else if rounded <= 0 {
+            0
+        } else {
+            rounded as u8
+        }
+    }
 }
 
 impl ops::Add<Colour> for Colour {

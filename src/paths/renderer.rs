@@ -9,7 +9,6 @@ use crate::paths::matrix::Matrix3;
 use crate::paths::scene::{Collision, Scene};
 
 pub struct Renderer {
-    ambient_light: Colour,
     scene: Scene,
     camera: Camera,
     colour_buffer: Vec<Colour>,
@@ -20,7 +19,7 @@ impl Renderer {
     pub fn new(scene: Scene, camera: Camera) -> Renderer {
         let colour_buffer = vec![Colour::BLACK; (camera.width * camera.height) as usize];
         let count_buffer = vec![0; (camera.width * camera.height) as usize];
-        Renderer{ ambient_light: Colour::BLACK, scene, camera, colour_buffer, count_buffer, }
+        Renderer{ scene, camera, colour_buffer, count_buffer, }
     }
 
     pub fn render(&self) -> Image {
@@ -64,19 +63,15 @@ impl Renderer {
         self.update_pixel(x, y, colour);
     }
 
-    pub fn set_ambient_light(&mut self, light: Colour) {
-        self.ambient_light = light;
-    }
-
     fn trace_ray(&mut self, ray: Ray, depth: u32) -> Colour {
         if depth > 4 {
-            return self.ambient_light;
+            return self.scene.ambient_light;
         }
 
         let (collision, material) = if let Some((c, m)) = self.scene.find_intersection(ray) {
             (c, m)
         } else {
-            return self.ambient_light;
+            return self.scene.ambient_light;
         };
 
         let emittance = material.emittance;
@@ -109,6 +104,10 @@ impl Renderer {
         let ix = self.get_index(x, y);
         self.count_buffer[ix] += 1;
         self.colour_buffer[ix] += colour;
+
+        if ix == 0 {
+            println!("(0,0): {:?}, {:?}", self.count_buffer[ix], self.colour_buffer[ix]);
+        }
     }
 
     fn clamp(x: f64) -> f64 {
