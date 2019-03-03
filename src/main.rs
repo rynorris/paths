@@ -1,6 +1,7 @@
 mod paths;
 
-use crate::paths::{Camera, Scene};
+use crate::paths::Camera;
+use crate::paths::scene::Scene;
 use crate::paths::renderer::Renderer;
 
 use sdl2::{event, pixels};

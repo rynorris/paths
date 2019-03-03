@@ -1,8 +1,9 @@
 use rand;
 use rand::Rng;
 
-use crate::paths::{Camera, Image, Scene};
+use crate::paths::{Camera, Image};
 use crate::paths::colour::{Colour};
+use crate::paths::scene::Scene;
 
 pub struct Renderer {
     scene: Scene,

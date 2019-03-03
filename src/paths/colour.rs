@@ -1,5 +1,8 @@
 use std::ops;
 
+use rand;
+use rand::Rng;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Colour {
     pub r: f64,
@@ -9,6 +12,15 @@ pub struct Colour {
 
 impl Colour {
     pub const BLACK: Colour = Colour { r: 0.0, g: 0.0, b: 0.0 };
+
+    pub fn random() -> Colour {
+        let mut rng = rand::thread_rng();
+        Colour {
+            r: rng.gen(),
+            g: rng.gen(),
+            b: rng.gen(),
+        }
+    }
 }
 
 impl ops::Add<Colour> for Colour {
