@@ -4,6 +4,11 @@ pub mod renderer;
 pub mod scene;
 pub mod vector;
 
+use std::f64::consts::PI;
+
+use rand;
+use rand::Rng;
+
 use self::colour::Colour;
 use self::matrix::Matrix3;
 use self::vector::Vector3;
@@ -12,6 +17,20 @@ use self::vector::Vector3;
 pub struct Ray {
     pub origin: Vector3,
     pub direction: Vector3,
+}
+
+impl Ray {
+    pub fn random_in_hemisphere(&self) -> Ray {
+        let mut rng = rand::thread_rng();
+        let yaw = (rng.gen::<f64>() - 0.5) * PI;
+        let pitch = (rng.gen::<f64>() - 0.5) * PI;
+        let roll = (rng.gen::<f64>() - 0.5) * PI;
+        let rot = Matrix3::rotation(yaw, pitch, roll);
+        Ray {
+            origin: self.origin,
+            direction: rot * self.direction,
+        }
+    }
 }
 
 pub struct Image {

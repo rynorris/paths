@@ -1,9 +1,12 @@
+use std::f64::consts::PI;
+
 use rand;
 use rand::Rng;
 
 use crate::paths::{Camera, Image, Ray};
 use crate::paths::colour::{Colour};
-use crate::paths::scene::Scene;
+use crate::paths::matrix::Matrix3;
+use crate::paths::scene::{Collision, Scene};
 
 pub struct Renderer {
     scene: Scene,
@@ -37,6 +40,16 @@ impl Renderer {
         }
     }
 
+    pub fn trace_full_pass(&mut self) {
+        for x in 0 .. self.camera.width {
+            for y in 0 .. self.camera.height {
+                let ray = self.camera.get_ray_for_pixel(x, y);
+                let colour = self.trace_ray(ray, 0);
+                self.update_pixel(x, y, colour);
+            }
+        }
+    }
+
     pub fn trace_ray_single(&mut self) {
         // Random pixel.
         let mut rng = rand::thread_rng();
@@ -51,7 +64,7 @@ impl Renderer {
     }
 
     fn trace_ray(&mut self, ray: Ray, depth: u32) -> Colour {
-        if depth > 2 {
+        if depth > 4 {
             return Colour::BLACK;
         }
 
@@ -61,26 +74,26 @@ impl Renderer {
             return Colour::BLACK;
         };
 
-        if depth >= 1 {
-            println!("Collision: {:?}, Material: {:?}", collision, material);
-        }
-
-
         let emittance = material.emittance;
 
-        let new_ray = Ray{
-            origin: collision.location + collision.normal,  // Add the normal as a hack so it doesn't collide with the same object again.
-            direction: collision.normal,
-        };
+        let new_ray = Renderer::new_ray(collision);
 
-        let p = 1.0 / (2.0 * std::f64::consts::PI);
+        let p = 1.0 / (2.0 * PI);
 
         let cos_theta: f64 = new_ray.direction.dot(collision.normal);
-        let brdf: Colour = material.reflectance / std::f64::consts::PI;
+        let brdf: Colour = material.reflectance / PI;
 
         let incoming: Colour = self.trace_ray(new_ray, depth + 1);
 
         return emittance + (brdf * incoming * (cos_theta / p));
+    }
+
+    fn new_ray(collision: Collision) -> Ray {
+        let ray = Ray{
+            origin: collision.location + collision.normal,  // Add the normal as a hack so it doesn't collide with the same object again.
+            direction: collision.normal,
+        };
+        ray.random_in_hemisphere()
     }
 
     fn update_pixel(&mut self, x: u32, y: u32, colour: Colour) {

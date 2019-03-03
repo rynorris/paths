@@ -39,23 +39,39 @@ fn main() {
 
     let camera = Camera::new(WIDTH, HEIGHT);
 
-    let sphere = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(0.0, 0.0, 100.0), radius: 100.0 }),
+    let sphere1 = Object {
+        shape: Box::new(Sphere{ center: Vector3::new(-100.0, 50.0, 200.0), radius: 150.0 }),
         material: Material{
             emittance: Colour::BLACK,
-            reflectance: Colour::random(),
+            reflectance: Colour::WHITE,
         },
     };
 
-    let light = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(1000.0, 1000.0, -1000.0), radius: 500.0 }),
+    let sphere2 = Object {
+        shape: Box::new(Sphere{ center: Vector3::new(100.0, -50.0, 200.0), radius: 150.0 }),
         material: Material{
-            emittance: Colour::WHITE,
+            emittance: Colour::BLACK,
+            reflectance: Colour{ r: 1.0, g: 0.0, b: 0.0 },
+        },
+    };
+
+    let light1 = Object {
+        shape: Box::new(Sphere{ center: Vector3::new(1000.0, 1000.0, -1000.0), radius: 900.0 }),
+        material: Material{
+            emittance: Colour{ r: 1.0, g: 1.0, b: 1.0 },
             reflectance: Colour::BLACK,
         },
     };
 
-    let scene: Scene = Scene{ objects: vec![sphere, light], };
+    let light2 = Object {
+        shape: Box::new(Sphere{ center: Vector3::new(-1000.0, -1000.0, -1000.0), radius: 900.0 }),
+        material: Material{
+            emittance: Colour{ r: 1.0, g: 1.0, b: 1.0 },
+            reflectance: Colour::BLACK,
+        },
+    };
+
+    let scene: Scene = Scene{ objects: vec![sphere1, sphere2, light1, light2], };
     let mut renderer = Renderer::new(scene, camera);
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
@@ -63,7 +79,7 @@ fn main() {
     let mut is_running = true;
 
     while is_running {
-        renderer.trace_rays(10000);
+        renderer.trace_full_pass();
         let image = renderer.render();
 
         for ix in 0 .. image.pixels.len() {
