@@ -41,11 +41,13 @@ pub struct Image {
 
 pub struct Camera {
     pub location: Vector3,  // Center of camera sensor.
+    pub focal_length: f64,
     pub yaw: f64,  // Radians
     pub pitch: f64,    // Radians
     pub roll: f64,   // Radians
     x_vec: Vector3,
     y_vec: Vector3,
+    direction: Vector3,
     pub width: u32,
     pub height: u32,
 }
@@ -54,46 +56,44 @@ impl Camera {
     pub fn new(width: u32, height: u32) -> Camera {
         let mut camera = Camera {
             location: Vector3::new(0.0, 0.0, 0.0),
+            focal_length: 10.0,
             yaw: 0.0,
             pitch: 0.0,
             roll: 0.0,
             x_vec: Vector3::new(0.0, 0.0, 0.0),
             y_vec: Vector3::new(0.0, 0.0, 0.0),
+            direction: Vector3::new(0.0, 0.0, 0.0),
             width,
             height,
         };
-        camera.compute_x_y_vec();
+        camera.recompute();
         camera
     }
 
     pub fn get_ray_for_pixel(&self, x: u32, y: u32) -> Ray {
         let x_offset = (x as i32) - (self.width as i32) / 2;
         let y_offset = (y as i32) - (self.height as i32) / 2;
-        let origin = self.location + (self.x_vec * x_offset) + (self.y_vec * y_offset);
 
-        let direction = self.direction_vec();
-
-        Ray { origin, direction }
+        Ray { 
+            origin: self.location,
+            direction: ((self.direction * self.focal_length) + (self.x_vec * x_offset) + (self.y_vec * y_offset)).normed(),
+        }
     }
 
     pub fn set_orientation(&mut self, yaw: f64, pitch: f64, roll: f64) {
         self.yaw = yaw;
         self.pitch = pitch;
         self.roll = roll;
-        self.compute_x_y_vec();
+        self.recompute();
     }
 
-    pub fn direction_vec(&self) -> Vector3 {
-        let k = Vector3::new(0.0, 0.0, 1.0);
-        let rot = Matrix3::rotation(self.yaw, self.pitch, self.roll);
-        rot * k
-    }
-
-    fn compute_x_y_vec(&mut self) {
+    fn recompute(&mut self) {
         let i = Vector3::new(1.0, 0.0, 0.0);
         let j = Vector3::new(0.0, 1.0, 0.0);
+        let k = Vector3::new(0.0, 0.0, 1.0);
         let rot = Matrix3::rotation(self.yaw, self.pitch, self.roll);
         self.x_vec = rot.clone() * i;
         self.y_vec = rot.clone() * j;
+        self.direction = rot.clone() * k;
     }
 }

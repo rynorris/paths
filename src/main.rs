@@ -38,8 +38,10 @@ fn main() {
     };
 
     let mut camera = Camera::new(WIDTH, HEIGHT);
-    camera.location.y = -200.0;
-    camera.set_orientation(0.0, 0.0, -0.5);
+    camera.location.y = -250.0;
+    camera.location.z = -250.0;
+    camera.focal_length = 200.0;
+    camera.set_orientation(0.0, 0.0, -0.8);
 
     let sphere1 = Object {
         shape: Box::new(Sphere{ center: Vector3::new(0.0, 1000.0, 200.0), radius: 1000.0 }),
