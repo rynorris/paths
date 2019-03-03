@@ -37,10 +37,12 @@ fn main() {
         Ok(t) => t,
     };
 
-    let camera = Camera::new(WIDTH, HEIGHT);
+    let mut camera = Camera::new(WIDTH, HEIGHT);
+    camera.location.y = -200.0;
+    camera.set_orientation(0.0, 0.0, -0.5);
 
     let sphere1 = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(-100.0, 50.0, 200.0), radius: 150.0 }),
+        shape: Box::new(Sphere{ center: Vector3::new(0.0, 1000.0, 200.0), radius: 1000.0 }),
         material: Material{
             emittance: Colour::BLACK,
             reflectance: Colour::WHITE,
@@ -48,7 +50,7 @@ fn main() {
     };
 
     let sphere2 = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(100.0, -50.0, 200.0), radius: 150.0 }),
+        shape: Box::new(Sphere{ center: Vector3::new(100.0, -100.0, 50.0), radius: 80.0 }),
         material: Material{
             emittance: Colour::BLACK,
             reflectance: Colour{ r: 1.0, g: 0.0, b: 0.0 },
@@ -56,31 +58,29 @@ fn main() {
     };
 
     let light1 = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(1000.0, 1000.0, -1000.0), radius: 900.0 }),
+        shape: Box::new(Sphere{ center: Vector3::new(1000.0, -1000.0, 100.0), radius: 800.0 }),
         material: Material{
             emittance: Colour{ r: 1.0, g: 1.0, b: 1.0 },
             reflectance: Colour::BLACK,
         },
     };
 
-    let light2 = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(-1000.0, -1000.0, -1000.0), radius: 900.0 }),
-        material: Material{
-            emittance: Colour{ r: 1.0, g: 1.0, b: 1.0 },
-            reflectance: Colour::BLACK,
-        },
-    };
-
-    let scene: Scene = Scene{ objects: vec![sphere1, sphere2, light1, light2], };
+    let scene: Scene = Scene{ objects: vec![sphere1, sphere2, light1 ], };
     let mut renderer = Renderer::new(scene, camera);
+    renderer.set_ambient_light(Colour{ r: 0.05, g: 0.05, b: 0.05 });
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
 
     let mut is_running = true;
 
+    let mut num_samples = 0;
+
     while is_running {
         renderer.trace_full_pass();
         let image = renderer.render();
+
+        num_samples += 1;
+        println!("Num samples: {:?}", num_samples);
 
         for ix in 0 .. image.pixels.len() {
             let colour = image.pixels[ix];
