@@ -1,8 +1,10 @@
 mod paths;
 
 use crate::paths::Camera;
-use crate::paths::scene::Scene;
+use crate::paths::colour::Colour;
+use crate::paths::scene::{Material, Object, Scene, Sphere};
 use crate::paths::renderer::Renderer;
+use crate::paths::vector::Vector3;
 
 use sdl2::{event, pixels};
 use sdl2::keyboard::Keycode;
@@ -36,7 +38,12 @@ fn main() {
     };
 
     let camera = Camera::new(WIDTH, HEIGHT);
-    let scene: Scene = Scene{ objects: vec![], };
+    let scene: Scene = Scene{ objects: vec![
+        Object {
+            shape: Box::new(Sphere{ center: Vector3::new(0.0, 0.0, 100.0), radius: 100.0 }),
+            material: Material{ emittance: Colour::random(), reflectance: Colour::random() },
+        },
+    ], };
     let mut renderer = Renderer::new(scene, camera);
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
@@ -44,7 +51,7 @@ fn main() {
     let mut is_running = true;
 
     while is_running {
-        renderer.trace_rays(1000);
+        renderer.trace_rays(10000);
         let image = renderer.render();
 
         for ix in 0 .. image.pixels.len() {

@@ -43,7 +43,13 @@ impl Renderer {
         let x = rng.gen_range(0, self.camera.width);
         let y = rng.gen_range(0, self.camera.height);
 
-        let colour = self.camera.trace_ray(x, y);
+        let ray = self.camera.get_ray_for_pixel(x, y);
+        let colour = if let Some((collision, material)) = self.scene.find_intersection(ray) {
+            material.emittance
+        } else {
+            Colour::BLACK
+        };
+
         self.update_pixel(x, y, colour);
     }
 

@@ -24,6 +24,7 @@ pub trait Shape {
     fn intersect(&self, ray: Ray) -> Option<Collision>;
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Sphere {
     pub center: Vector3,
     pub radius: f64,
@@ -36,7 +37,7 @@ impl Shape for Sphere {
         let o = ray.origin;
         let l = ray.direction;
 
-        let discriminant = (l.dot(o - c) * l.dot(o - c)) - (o - c).dot(o - c) - (r * r);
+        let discriminant = (l.dot(o - c) * l.dot(o - c)) - (o - c).dot(o - c) + (r * r);
 
         if discriminant < 0.0 {
             return None
@@ -54,7 +55,7 @@ impl Shape for Sphere {
 
         let distance = if d2 > 0.0 { d2 } else { d1 };
         let location = o + (l * distance);
-        let normal = location - c;
+        let normal = (location - c).normed();
         Some(Collision{ distance, location, normal, })
     }
 }

@@ -8,6 +8,10 @@ pub struct Vector3 {
 }
 
 impl Vector3 {
+    pub fn new(x: f64, y: f64, z: f64) -> Vector3 {
+        Vector3 { x, y, z }
+    }
+
     pub fn dot(&self, other: Vector3) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
