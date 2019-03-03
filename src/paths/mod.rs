@@ -70,8 +70,7 @@ impl Camera {
         let x_offset = (x as i32) - (self.width as i32) / 2;
         let y_offset = (y as i32) - (self.height as i32) / 2;
         let origin = self.location + (self.x_vec * x_offset) + (self.y_vec * y_offset);
-        //
-        // TODO: Randomize direction.
+
         let direction = self.direction_vec();
 
         Ray { origin, direction }
