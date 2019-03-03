@@ -97,21 +97,9 @@ impl Renderer {
     }
 
     fn update_pixel(&mut self, x: u32, y: u32, mut colour: Colour) {
-        colour.r = Renderer::clamp(colour.r);
-        colour.g = Renderer::clamp(colour.g);
-        colour.b = Renderer::clamp(colour.b);
-
         let ix = self.get_index(x, y);
         self.count_buffer[ix] += 1;
         self.colour_buffer[ix] += colour;
-
-        if ix == 0 {
-            println!("(0,0): {:?}, {:?}", self.count_buffer[ix], self.colour_buffer[ix]);
-        }
-    }
-
-    fn clamp(x: f64) -> f64 {
-        if x > 1.0 { 1.0 } else if x < 0.0 { 0.0 } else { x }
     }
 
     fn get_index(&self, x: u32, y: u32) -> usize {

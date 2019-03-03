@@ -47,7 +47,7 @@ fn main() {
         shape: Box::new(Sphere{ center: Vector3::new(0.0, 1000.0, 200.0), radius: 1000.0 }),
         material: Material{
             emittance: Colour::BLACK,
-            reflectance: Colour::rgb(0.18, 0.18, 0.18),
+            reflectance: Colour::rgb(0.8, 0.8, 0.8),
         },
     };
 
@@ -55,14 +55,14 @@ fn main() {
         shape: Box::new(Sphere{ center: Vector3::new(100.0, -100.0, 50.0), radius: 80.0 }),
         material: Material{
             emittance: Colour::BLACK,
-            reflectance: Colour{ r: 1.0, g: 0.0, b: 0.0 },
+            reflectance: Colour{ r: 1.0, g: 0.2, b: 0.2 },
         },
     };
 
     let light1 = Object {
         shape: Box::new(Sphere{ center: Vector3::new(1000.0, -1000.0, 100.0), radius: 800.0 }),
         material: Material{
-            emittance: Colour{ r: 2.0, g: 2.0, b: 2.0 },
+            emittance: Colour{ r: 5.0, g: 5.0, b: 5.0 },
             reflectance: Colour::BLACK,
         },
     };
@@ -89,9 +89,6 @@ fn main() {
             texture_buffer[ix * 3] = r;
             texture_buffer[ix * 3 + 1] = g;
             texture_buffer[ix * 3 + 2] = b;
-            if ix == 0 {
-                println!("Rendered (0,0): {:?}, {:?}", colour, &texture_buffer[0..3]);
-            }
         }
 
         output_texture.update(None, texture_buffer.as_slice(), (WIDTH * 3) as usize).expect("Failed to update texture");
