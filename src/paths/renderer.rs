@@ -1,7 +1,7 @@
 use rand;
 use rand::Rng;
 
-use crate::paths::{Camera, Image};
+use crate::paths::{Camera, Image, Ray};
 use crate::paths::colour::{Colour};
 use crate::paths::scene::Scene;
 
@@ -44,13 +44,43 @@ impl Renderer {
         let y = rng.gen_range(0, self.camera.height);
 
         let ray = self.camera.get_ray_for_pixel(x, y);
-        let colour = if let Some((collision, material)) = self.scene.find_intersection(ray) {
-            material.emittance
-        } else {
-            Colour::BLACK
-        };
+
+        let colour = self.trace_ray(ray, 0);
 
         self.update_pixel(x, y, colour);
+    }
+
+    fn trace_ray(&mut self, ray: Ray, depth: u32) -> Colour {
+        if depth > 2 {
+            return Colour::BLACK;
+        }
+
+        let (collision, material) = if let Some((c, m)) = self.scene.find_intersection(ray) {
+            (c, m)
+        } else {
+            return Colour::BLACK;
+        };
+
+        if depth >= 1 {
+            println!("Collision: {:?}, Material: {:?}", collision, material);
+        }
+
+
+        let emittance = material.emittance;
+
+        let new_ray = Ray{
+            origin: collision.location + collision.normal,  // Add the normal as a hack so it doesn't collide with the same object again.
+            direction: collision.normal,
+        };
+
+        let p = 1.0 / (2.0 * std::f64::consts::PI);
+
+        let cos_theta: f64 = new_ray.direction.dot(collision.normal);
+        let brdf: Colour = material.reflectance / std::f64::consts::PI;
+
+        let incoming: Colour = self.trace_ray(new_ray, depth + 1);
+
+        return emittance + (brdf * incoming * (cos_theta / p));
     }
 
     fn update_pixel(&mut self, x: u32, y: u32, colour: Colour) {

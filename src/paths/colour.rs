@@ -12,6 +12,7 @@ pub struct Colour {
 
 impl Colour {
     pub const BLACK: Colour = Colour { r: 0.0, g: 0.0, b: 0.0 };
+    pub const WHITE: Colour = Colour { r: 1.0, g: 1.0, b: 1.0 };
 
     pub fn random() -> Colour {
         let mut rng = rand::thread_rng();
@@ -35,6 +36,31 @@ impl ops::Add<Colour> for Colour {
     }
 }
 
+impl ops::Mul<Colour> for Colour {
+    type Output = Colour;
+
+    fn mul(self, other: Colour) -> Colour {
+        Colour {
+            r: self.r * other.r,
+            g: self.g * other.g,
+            b: self.b * other.b,
+        }
+    }
+}
+
+impl <T : Into<f64>> ops::Mul<T> for Colour {
+    type Output = Colour;
+
+    fn mul(self, x: T) -> Colour {
+        let x_f64 = x.into();
+        Colour {
+            r: self.r * x_f64,
+            g: self.g * x_f64,
+            b: self.b * x_f64,
+        }
+    }
+}
+
 impl ops::AddAssign<Colour> for Colour {
     fn add_assign(&mut self, other: Colour) {
         self.r += other.r;
@@ -43,14 +69,15 @@ impl ops::AddAssign<Colour> for Colour {
     }
 }
 
-impl ops::Div<u32> for Colour {
+impl <T : Into<f64>> ops::Div<T> for Colour {
     type Output = Colour;
 
-    fn div(self, x: u32) -> Colour {
+    fn div(self, x: T) -> Colour {
+        let x_f64 = x.into();
         Colour {
-            r: self.r / (x as f64),
-            g: self.g / (x as f64),
-            b: self.b / (x as f64),
+            r: self.r / x_f64,
+            g: self.g / x_f64,
+            b: self.b / x_f64,
         }
     }
 }

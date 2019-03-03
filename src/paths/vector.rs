@@ -21,7 +21,7 @@ impl Vector3 {
     }
 
     pub fn normed(&self) -> Vector3 {
-        (*self) / self.magnitude()
+        (*self) / self.magnitude().sqrt()
     }
 }
 

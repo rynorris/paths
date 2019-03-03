@@ -38,12 +38,24 @@ fn main() {
     };
 
     let camera = Camera::new(WIDTH, HEIGHT);
-    let scene: Scene = Scene{ objects: vec![
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, 0.0, 100.0), radius: 100.0 }),
-            material: Material{ emittance: Colour::random(), reflectance: Colour::random() },
+
+    let sphere = Object {
+        shape: Box::new(Sphere{ center: Vector3::new(0.0, 0.0, 100.0), radius: 100.0 }),
+        material: Material{
+            emittance: Colour::BLACK,
+            reflectance: Colour::random(),
         },
-    ], };
+    };
+
+    let light = Object {
+        shape: Box::new(Sphere{ center: Vector3::new(1000.0, 1000.0, -1000.0), radius: 500.0 }),
+        material: Material{
+            emittance: Colour::WHITE,
+            reflectance: Colour::BLACK,
+        },
+    };
+
+    let scene: Scene = Scene{ objects: vec![sphere, light], };
     let mut renderer = Renderer::new(scene, camera);
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
