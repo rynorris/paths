@@ -38,36 +38,35 @@ fn main() {
     };
 
     let mut camera = Camera::new(WIDTH, HEIGHT);
-    camera.location.y = -450.0;
-    camera.location.z = -450.0;
+    camera.location.z = -550.0;
     camera.focal_length = 400.0;
-    camera.set_orientation(0.0, 0.0, -0.8);
+    camera.set_orientation(0.0, 0.0, 0.0);
 
-    let sphere1 = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(0.0, 1000.0, 200.0), radius: 1000.0 }),
-        material: Material{
-            emittance: Colour::BLACK,
-            reflectance: Colour::rgb(0.5, 0.5, 0.5),
+    let objects = vec![
+        Object {
+            shape: Box::new(Sphere{ center: Vector3::new(-600.0, 0.0, 200.0), radius: 540.0 }),
+            material: Material{
+                emittance: Colour::BLACK,
+                reflectance: Colour::rgb(0.5, 0.5, 0.5),
+            },
         },
-    };
-
-    let sphere2 = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(100.0, -150.0, 50.0), radius: 80.0 }),
-        material: Material{
-            emittance: Colour::BLACK,
-            reflectance: Colour{ r: 1.0, g: 0.2, b: 0.2 },
+        Object {
+            shape: Box::new(Sphere{ center: Vector3::new(600.0, 0.0, 200.0), radius: 540.0 }),
+            material: Material{
+                emittance: Colour::BLACK,
+                reflectance: Colour::rgb(1.0, 0.2, 0.2),
+            },
         },
-    };
-
-    let light1 = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(1000.0, -1000.0, 100.0), radius: 800.0 }),
-        material: Material{
-            emittance: Colour{ r: 3.0, g: 3.0, b: 3.0 },
-            reflectance: Colour::BLACK,
+        Object {
+            shape: Box::new(Sphere{ center: Vector3::new(0.0, 700.0, 200.0), radius: 300.0 }),
+            material: Material{
+                emittance: Colour::rgb(5.0, 5.0, 5.0),
+                reflectance: Colour::BLACK,
+            },
         },
-    };
+        ];
 
-    let scene: Scene = Scene{ objects: vec![sphere1, sphere2, light1], ambient_light: Colour::rgb(0.05, 0.05, 0.05) };
+    let scene: Scene = Scene{ objects, ambient_light: Colour::rgb(0.10, 0.10, 0.10) };
     let mut renderer = Renderer::new(scene, camera, 4);
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
