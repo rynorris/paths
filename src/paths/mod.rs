@@ -71,8 +71,8 @@ impl Camera {
     }
 
     pub fn get_ray_for_pixel(&self, x: u32, y: u32) -> Ray {
-        let x_offset = (x as i32) - (self.width as i32) / 2;
-        let y_offset = (y as i32) - (self.height as i32) / 2;
+        let x_offset: f64 = (x as f64) - ((self.width as f64) / 2.0);
+        let y_offset: f64 = (y as f64) - ((self.height as f64) / 2.0);
 
         Ray { 
             origin: self.location,

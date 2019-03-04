@@ -81,6 +81,7 @@ impl Renderer {
         let p = 1.0 / (2.0 * PI);
 
         let cos_theta: f64 = new_ray.direction.dot(collision.normal);
+
         let brdf: Colour = material.reflectance / PI;
 
         let incoming: Colour = self.trace_ray(new_ray, depth + 1);
@@ -96,7 +97,7 @@ impl Renderer {
         ray.random_in_hemisphere()
     }
 
-    fn update_pixel(&mut self, x: u32, y: u32, mut colour: Colour) {
+    fn update_pixel(&mut self, x: u32, y: u32, colour: Colour) {
         let ix = self.get_index(x, y);
         self.count_buffer[ix] += 1;
         self.colour_buffer[ix] += colour;

@@ -47,12 +47,12 @@ fn main() {
         shape: Box::new(Sphere{ center: Vector3::new(0.0, 1000.0, 200.0), radius: 1000.0 }),
         material: Material{
             emittance: Colour::BLACK,
-            reflectance: Colour::rgb(0.8, 0.8, 0.8),
+            reflectance: Colour::rgb(0.5, 0.5, 0.5),
         },
     };
 
     let sphere2 = Object {
-        shape: Box::new(Sphere{ center: Vector3::new(100.0, -100.0, 50.0), radius: 80.0 }),
+        shape: Box::new(Sphere{ center: Vector3::new(100.0, -150.0, 50.0), radius: 80.0 }),
         material: Material{
             emittance: Colour::BLACK,
             reflectance: Colour{ r: 1.0, g: 0.2, b: 0.2 },
@@ -62,7 +62,7 @@ fn main() {
     let light1 = Object {
         shape: Box::new(Sphere{ center: Vector3::new(1000.0, -1000.0, 100.0), radius: 800.0 }),
         material: Material{
-            emittance: Colour{ r: 5.0, g: 5.0, b: 5.0 },
+            emittance: Colour{ r: 3.0, g: 3.0, b: 3.0 },
             reflectance: Colour::BLACK,
         },
     };
@@ -91,6 +91,7 @@ fn main() {
             texture_buffer[ix * 3 + 2] = b;
         }
 
+        canvas.clear();
         output_texture.update(None, texture_buffer.as_slice(), (WIDTH * 3) as usize).expect("Failed to update texture");
         canvas.copy(&output_texture, None, None).expect("Failed to copy texture to canvas");
         canvas.present();
