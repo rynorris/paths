@@ -68,7 +68,7 @@ fn main() {
     };
 
     let scene: Scene = Scene{ objects: vec![sphere1, sphere2, light1], ambient_light: Colour::rgb(0.05, 0.05, 0.05) };
-    let mut renderer = Renderer::new(scene, camera);
+    let mut renderer = Renderer::new(scene, camera, 4);
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
 

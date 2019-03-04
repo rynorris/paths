@@ -40,6 +40,7 @@ pub struct Image {
     pub pixels: Vec<Colour>,
 }
 
+#[derive(Clone)]
 pub struct Camera {
     pub location: Vector3,  // Center of camera sensor.
     pub focal_length: f64,

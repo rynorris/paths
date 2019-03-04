@@ -8,6 +8,7 @@ pub struct Material {
     pub reflectance: Colour,
 }
 
+#[derive(Clone)]
 pub struct Object {
     pub shape: Box<dyn Shape>,
     pub material: Material,
@@ -20,8 +21,30 @@ pub struct Collision {
     pub normal: Vector3,
 }
 
-pub trait Shape {
+pub trait Shape : ShapeClone + Send {
     fn intersect(&self, ray: Ray) -> Option<Collision>;
+}
+
+pub trait ShapeClone {
+    fn clone_box(&self) -> Box<Shape>;
+}
+
+impl <T> ShapeClone for T where T: 'static + Shape + Clone {
+    fn clone_box(&self) -> Box<Shape> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<Shape> {
+    fn clone(&self) -> Box<Shape> {
+        self.clone_box()
+    }
+}
+
+#[derive(Clone)]
+pub struct Scene {
+    pub objects: Vec<Object>,
+    pub ambient_light: Colour,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -58,11 +81,6 @@ impl Shape for Sphere {
         let normal = (location - c).normed();
         Some(Collision{ distance, location, normal, })
     }
-}
-
-pub struct Scene {
-    pub objects: Vec<Object>,
-    pub ambient_light: Colour,
 }
 
 impl Scene {
