@@ -15,6 +15,8 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [ ] Importance sampling
 - [ ] Reflective materials
 - [ ] Translucent materials (refraction)
+- [ ] Bi-directional path tracing
+- [ ] Consider direct paths to light sources
 
 ### Examples
 
