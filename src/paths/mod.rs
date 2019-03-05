@@ -1,4 +1,5 @@
 pub mod colour;
+pub mod material;
 pub mod matrix;
 pub mod pixels;
 pub mod renderer;

@@ -1,6 +1,6 @@
 use std::ops;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vector3 {
     pub x: f64,
     pub y: f64,
@@ -22,6 +22,26 @@ impl Vector3 {
 
     pub fn normed(&self) -> Vector3 {
         (*self) / self.magnitude().sqrt()
+    }
+
+    pub fn cross(&self, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.y * other.z - self.z * other.y,
+            y: -(self.x * other.z - self.z * other.x),
+            z: self.x * other.y - self.y * other.x,
+        }
+    }
+
+    pub fn form_basis(&self) -> (Vector3, Vector3, Vector3) {
+        let j = *self;
+
+        let i = if j.x.abs() <= 0.1 {
+            Vector3::new(1.0, 0.0, 0.0)
+        } else {
+            j.cross(Vector3::new(0.0, 1.0, 0.0))
+        };
+        let k = i.cross(j);
+        (i, j, k)
     }
 }
 
