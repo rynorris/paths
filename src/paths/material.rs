@@ -80,3 +80,30 @@ impl Material for Lambertian {
         self.albedo
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub struct Mirror {}
+
+impl Mirror {
+    fn reflect(vector: Vector3, normal: Vector3) -> Vector3 {
+        (normal * normal.dot(vector) * 2) - vector
+    }
+}
+
+impl Material for Mirror {
+    fn weight_pdf(&self, _vec_out: Vector3, _normal: Vector3) -> Colour {
+        Colour::rgb(1.0, 1.0, 1.0)
+    }
+
+    fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
+        Mirror::reflect(vec_out, normal)
+    }
+
+    fn emittance(&self, _vec_out: Vector3, _cos_out: f64) -> Colour {
+        Colour::BLACK
+    }
+
+    fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
+        Colour::BLACK
+    }
+}
