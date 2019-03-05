@@ -42,52 +42,34 @@ fn main() {
 
     let mut camera = Camera::new(WIDTH, HEIGHT);
     camera.location.x = 0.0;
-    camera.location.y = -300.0;
-    camera.location.z = -300.0;
-    camera.focal_length = 300.0;
-    camera.set_orientation(0.0, -0.1, -0.6);
+    camera.location.y = -400.0;
+    camera.location.z = -500.0;
+    camera.focal_length = 400.0;
+    camera.set_orientation(0.0, -0.1, -0.4);
 
     let objects = vec![
         // Objects
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(100.0, -0.0, -0.0), radius: 100.0 }),
+            shape: Box::new(Sphere{ center: Vector3::new(0.0, -100.0, 0.0), radius: 100.0 }),
             material: Box::new(Mirror{}),
         },
-
-        // Walls
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(100_500.0, 0.0, 0.0), radius: 100_000.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.3, 0.3, 0.7), Colour::rgb(0.0, 0.0, 0.0))),
+            shape: Box::new(Sphere{ center: Vector3::new(330.0, -200.0, -0.0), radius: 200.0 }),
+            material: Box::new(Lambertian::new(Colour::rgb(0.8, 0.3, 0.3), Colour::BLACK)),
         },
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(-100_500.0, 0.0, 0.0), radius: 100_000.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.7, 0.3, 0.3), Colour::rgb(0.0, 0.0, 0.0))),
-        },
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, 100_500.0, 0.0), radius: 100_000.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.7, 0.7, 0.7), Colour::rgb(0.0, 0.0, 0.0))),
-        },
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, -100_500.0, 0.0), radius: 100_000.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.7, 0.7, 0.7), Colour::rgb(0.0, 0.0, 0.0))),
-        },
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, 0.0, 100_500.0), radius: 100_000.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.7, 0.7, 0.7), Colour::rgb(0.0, 0.0, 0.0))),
-        },
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, 0.0, -100_500.0), radius: 100_000.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.7, 0.7, 0.7), Colour::rgb(0.0, 0.0, 0.0))),
+            shape: Box::new(Sphere{ center: Vector3::new(-330.0, -200.0, -0.0), radius: 200.0 }),
+            material: Box::new(Lambertian::new(Colour::rgb(0.0, 0.3, 0.8), Colour::BLACK)),
         },
 
-        // Lights
+        // Ground
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, -450.0, -0.0), radius: 150.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.0, 0.0, 0.0), Colour::rgb(7.0, 7.0, 7.0))),
+            shape: Box::new(Sphere{ center: Vector3::new(0.0, 1_000_000.0, -0.0), radius: 1_000_000.0 }),
+            material: Box::new(Lambertian::new(Colour::rgb(0.3, 0.6, 0.3), Colour::BLACK)),
         },
         ];
 
-    let scene: Scene = Scene{ objects, ambient_light: Colour::rgb(0.0, 0.0, 0.0) };
+    let scene: Scene = Scene{ objects, ambient_light: Colour::rgb(0.5, 0.8, 0.9) };
     let mut renderer = Renderer::new(scene, camera, 4);
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
