@@ -91,8 +91,16 @@ impl Mirror {
 }
 
 impl Material for Mirror {
-    fn weight_pdf(&self, _vec_out: Vector3, _normal: Vector3) -> Colour {
-        Colour::rgb(1.0, 1.0, 1.0)
+    fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
+        let cos_theta = vec_out.dot(normal);
+
+        let n1: f64 = 1.0;  // Air
+        let n2: f64 = 1.5;  // Glass
+
+        // Schlick's approximation for the fresnel factor.
+        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+        Colour::rgb(1.0, 1.0, 1.0) * (1.0 - r)
     }
 
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
@@ -105,5 +113,51 @@ impl Material for Mirror {
 
     fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
         Colour::BLACK
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Test {
+    lambertian: Lambertian,
+    mirror: Mirror,
+    reflectance: f64,
+}
+
+impl Test {
+    pub fn new(albedo: Colour, reflectance: f64) -> Test {
+        Test {
+            lambertian: Lambertian{ albedo, emittance: Colour::BLACK },
+            mirror: Mirror{},
+            reflectance: reflectance,
+        }
+    }
+}
+
+impl Material for Test {
+    fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
+        let cos_theta = vec_out.dot(normal);
+
+        let n1: f64 = 1.0;  // Air
+        let n2: f64 = 1.5;  // Glass
+
+        // Schlick's approximation for the fresnel factor.
+        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+        self.lambertian.albedo * (1.0 - r) + Colour::rgb(1.0, 1.0, 1.0) * r
+    }
+
+    fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
+        let random_ray = self.lambertian.sample_pdf(vec_out, normal);
+        let mirror_ray = self.mirror.sample_pdf(vec_out, normal);
+        let p = self.reflectance;
+        ((random_ray * (1.0 - p)) + (mirror_ray * p)).normed()
+    }
+
+    fn emittance(&self, _vec_out: Vector3, _cos_out: f64) -> Colour {
+        Colour::BLACK
+    }
+
+    fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
+        self.lambertian.albedo
     }
 }
