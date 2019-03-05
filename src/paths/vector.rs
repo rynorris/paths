@@ -20,6 +20,11 @@ impl Vector3 {
         self.dot(*self)
     }
 
+    pub fn max(&self) -> f64 {
+        let w = if self.x > self.y { self.x } else { self.y };
+        if w > self.z { w } else { self.z }
+    }
+
     pub fn normed(&self) -> Vector3 {
         (*self) / self.magnitude().sqrt()
     }

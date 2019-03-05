@@ -1,5 +1,7 @@
 mod paths;
 
+use std::time::Instant;
+
 use crate::paths::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::material::{Lambertian, Mirror};
@@ -80,7 +82,7 @@ fn main() {
 
         // Lights
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, -500.0, -0.0), radius: 150.0 }),
+            shape: Box::new(Sphere{ center: Vector3::new(0.0, -450.0, -0.0), radius: 150.0 }),
             material: Box::new(Lambertian::new(Colour::rgb(0.0, 0.0, 0.0), Colour::rgb(7.0, 7.0, 7.0))),
         },
         ];
@@ -94,12 +96,14 @@ fn main() {
 
     let mut num_samples = 0;
 
+    let start_time = Instant::now();
+
     while is_running {
         renderer.trace_full_pass();
         let image = renderer.render();
 
         num_samples += 1;
-        println!("Num samples: {:?}", num_samples);
+        println!("[{:.1?}] Num samples: {:?}", start_time.elapsed(), num_samples);
 
         for ix in 0 .. image.pixels.len() {
             let colour = image.pixels[ix];
