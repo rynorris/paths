@@ -12,8 +12,8 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [x] Multithreading
 - [ ] Support 3d models (triangle meshes)
 - [ ] Adaptive sampling
-- [ ] Importance sampling
-- [ ] Reflective materials
+- [x] Importance sampling
+- [x] Reflective materials
 - [ ] Translucent materials (refraction)
 - [ ] Bi-directional path tracing
 - [ ] Consider direct paths to light sources
