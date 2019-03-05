@@ -82,7 +82,7 @@ fn main() {
 
         // Lights
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, -500.0, -0.0), radius: 150.0 }),
+            shape: Box::new(Sphere{ center: Vector3::new(0.0, -450.0, -0.0), radius: 150.0 }),
             material: Box::new(Lambertian::new(Colour::rgb(0.0, 0.0, 0.0), Colour::rgb(7.0, 7.0, 7.0))),
         },
         ];

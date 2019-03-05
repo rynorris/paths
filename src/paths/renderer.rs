@@ -1,5 +1,7 @@
 use std::sync::mpsc::channel;
 
+use rand;
+use rand::Rng;
 use threadpool::ThreadPool;
 
 use crate::paths::{Camera, Image, Ray};
@@ -72,15 +74,21 @@ impl Renderer {
 
         let emittance = material.emittance(ray.direction * -1, cos_out);
 
+        let reflectance = material.weight_pdf(ray.direction * -1, collision.normal);
+
+        // Chance for the material to eat the ray.
+        let absorption_chance = reflectance.max();
+        if rand::thread_rng().gen::<f64>() > absorption_chance {
+            return emittance;
+        }
+
         let new_ray = Ray{
             origin: collision.location + collision.normal,  // Add the normal as a hack so it doesn't collide with the same object again.
             direction: material.sample_pdf(ray.direction * -1, collision.normal),
         };
 
-        let reflectance = material.weight_pdf(ray.direction * -1, collision.normal);
-
         let incoming: Colour = Renderer::trace_ray(scene, new_ray, depth + 1);
 
-        return emittance + reflectance * incoming;
+        return emittance + (reflectance * incoming / absorption_chance);
     }
 }

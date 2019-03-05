@@ -35,6 +35,11 @@ impl Colour {
             )
     }
 
+    pub fn max(&self) -> f64 {
+        let w = if self.r > self.g { self.r } else { self.g };
+        if w > self.b { w } else { self.b }
+    }
+
     fn component_to_byte(x: f64) -> u8 {
         let rounded = (x * 256.0) as i16;
         if rounded >= 256 {
