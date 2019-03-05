@@ -1,17 +1,12 @@
 use crate::paths::colour::Colour;
+use crate::paths::material::Material;
 use crate::paths::vector::Vector3;
 use crate::paths::Ray;
-
-#[derive(Clone, Copy, Debug)]
-pub struct Material {
-    pub emittance: Colour,
-    pub reflectance: Colour,
-}
 
 #[derive(Clone)]
 pub struct Object {
     pub shape: Box<dyn Shape>,
-    pub material: Material,
+    pub material: Box<dyn Material>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -84,9 +79,9 @@ impl Shape for Sphere {
 }
 
 impl Scene {
-    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Material)> {
+    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Box<Material>)> {
         self.objects.iter()
-            .map(|o| o.shape.intersect(ray).map(|col| (col, o.material)))
+            .map(|o| o.shape.intersect(ray).map(|col| (col, o.material.clone())))
             .filter(|o| o.is_some())
             .map(|o| o.unwrap())
             .min_by(|(c1, _), (c2, _)| c1.distance.partial_cmp(&c2.distance).unwrap_or(std::cmp::Ordering::Equal))

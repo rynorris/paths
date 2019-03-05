@@ -1,13 +1,11 @@
-use std::f64::consts::PI;
 use std::sync::mpsc::channel;
-use std::sync::Arc;
 
 use threadpool::ThreadPool;
 
 use crate::paths::{Camera, Image, Ray};
 use crate::paths::colour::{Colour};
 use crate::paths::pixels::Estimator;
-use crate::paths::scene::{Collision, Scene};
+use crate::paths::scene::Scene;
 
 pub struct Renderer {
     scene: Scene,
@@ -70,26 +68,19 @@ impl Renderer {
             return scene.ambient_light;
         };
 
-        let emittance = material.emittance;
+        let cos_out: f64 = ray.direction.dot(collision.normal);
 
-        let new_ray = Renderer::new_ray(collision);
+        let emittance = material.emittance(ray.direction * -1, cos_out);
 
-        let p = 1.0 / (2.0 * PI);
+        let new_ray = Ray{
+            origin: collision.location + collision.normal,  // Add the normal as a hack so it doesn't collide with the same object again.
+            direction: material.sample_pdf(ray.direction * -1, collision.normal),
+        };
 
-        let cos_theta: f64 = new_ray.direction.dot(collision.normal);
-
-        let brdf: Colour = material.reflectance / PI;
+        let reflectance = material.weight_pdf(ray.direction * -1, collision.normal);
 
         let incoming: Colour = Renderer::trace_ray(scene, new_ray, depth + 1);
 
-        return emittance + (brdf * incoming * (cos_theta / p));
-    }
-
-    fn new_ray(collision: Collision) -> Ray {
-        let ray = Ray{
-            origin: collision.location + collision.normal,  // Add the normal as a hack so it doesn't collide with the same object again.
-            direction: collision.normal,
-        };
-        ray.random_in_hemisphere()
+        return emittance + reflectance * incoming;
     }
 }
