@@ -9,7 +9,7 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 
 - [x] Basic path tracing of spheres
 - [ ] Point lights
-- [ ] Multithreading
+- [x] Multithreading
 - [ ] Support 3d models (triangle meshes)
 - [ ] Adaptive sampling
 - [ ] Importance sampling
