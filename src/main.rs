@@ -51,7 +51,7 @@ fn main() {
         // Objects
         Object {
             shape: Box::new(Sphere{ center: Vector3::new(0.0, -100.0, 0.0), radius: 100.0 }),
-            material: Box::new(Test::new(Colour::rgb(0.7, 0.7, 0.7), 1.0)),
+            material: Box::new(Mirror{}),
         },
         Object {
             shape: Box::new(Sphere{ center: Vector3::new(330.0, -200.0, -0.0), radius: 200.0 }),

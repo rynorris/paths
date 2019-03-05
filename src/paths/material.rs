@@ -92,15 +92,7 @@ impl Mirror {
 
 impl Material for Mirror {
     fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
-        let cos_theta = vec_out.dot(normal);
-
-        let n1: f64 = 1.0;  // Air
-        let n2: f64 = 1.5;  // Glass
-
-        // Schlick's approximation for the fresnel factor.
-        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
-        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
-        Colour::rgb(1.0, 1.0, 1.0) * (1.0 - r)
+        Colour::rgb(1.0, 1.0, 1.0)
     }
 
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
