@@ -91,7 +91,7 @@ impl Mirror {
 }
 
 impl Material for Mirror {
-    fn weight_pdf(&self, _vec_out: Vector3, _normal: Vector3) -> Colour {
+    fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
         Colour::rgb(1.0, 1.0, 1.0)
     }
 
@@ -105,5 +105,57 @@ impl Material for Mirror {
 
     fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
         Colour::BLACK
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Gloss {
+    lambertian: Lambertian,
+    mirror: Mirror,
+    fresnel_r0: f64,
+}
+
+impl Gloss {
+    pub fn new(albedo: Colour, reflectance: f64) -> Gloss {
+        let n1: f64 = 1.0;  // Air
+        let n2: f64 = reflectance;
+
+        // Schlick's approximation for the fresnel factor.
+        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
+        Gloss {
+            lambertian: Lambertian{ albedo, emittance: Colour::BLACK },
+            mirror: Mirror{},
+            fresnel_r0: r0,
+        }
+    }
+}
+
+impl Material for Gloss {
+    fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
+        let cos_theta = vec_out.dot(normal);
+        let r0 = self.fresnel_r0;
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
+        self.lambertian.albedo * (1.0 - r) + Colour::rgb(1.0, 1.0, 1.0) * r
+    }
+
+    fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
+        let cos_theta = vec_out.dot(normal);
+        let r0 = self.fresnel_r0;
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
+        if rand::thread_rng().gen::<f64>() > r {
+            self.lambertian.sample_pdf(vec_out, normal)
+        } else {
+            self.mirror.sample_pdf(vec_out, normal)
+        }
+    }
+
+    fn emittance(&self, _vec_out: Vector3, _cos_out: f64) -> Colour {
+        Colour::BLACK
+    }
+
+    fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
+        self.lambertian.albedo
     }
 }
