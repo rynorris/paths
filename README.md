@@ -10,13 +10,14 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [x] Basic path tracing of spheres
 - [ ] Point lights
 - [x] Multithreading
-- [ ] Support 3d models (triangle meshes)
-- [ ] Adaptive sampling
+- [ ] Triangle meshes
+- [ ] Normal smoothing (of triangle meshes)
 - [x] Importance sampling
 - [x] Reflective materials
+- [x] Glossy materials
 - [ ] Translucent materials (refraction)
+- [ ] Subsurface scattering
 - [ ] Bi-directional path tracing
-- [ ] Consider direct paths to light sources
 
 ### Examples
 
