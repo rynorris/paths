@@ -4,8 +4,8 @@ use std::time::Instant;
 
 use crate::paths::Camera;
 use crate::paths::colour::Colour;
-use crate::paths::material::{Lambertian, Mirror, Test};
-use crate::paths::scene::{Object, Scene, Sphere};
+use crate::paths::material::{Lambertian, Mirror, Gloss};
+use crate::paths::scene::{GradientSky, Object, Scene, Sphere};
 use crate::paths::renderer::Renderer;
 use crate::paths::vector::Vector3;
 
@@ -43,7 +43,7 @@ fn main() {
     let mut camera = Camera::new(WIDTH, HEIGHT);
     camera.location.x = 0.0;
     camera.location.y = -400.0;
-    camera.location.z = -500.0;
+    camera.location.z = -600.0;
     camera.focal_length = 400.0;
     camera.set_orientation(0.0, -0.1, -0.4);
 
@@ -55,21 +55,27 @@ fn main() {
         },
         Object {
             shape: Box::new(Sphere{ center: Vector3::new(330.0, -200.0, -0.0), radius: 200.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.8, 0.3, 0.3), Colour::BLACK)),
+            material: Box::new(Gloss::new(Colour::rgb(0.8, 0.3, 0.3), 1.5)),
         },
         Object {
             shape: Box::new(Sphere{ center: Vector3::new(-330.0, -200.0, -0.0), radius: 200.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.0, 0.3, 0.8), Colour::BLACK)),
+            material: Box::new(Gloss::new(Colour::rgb(0.0, 0.3, 0.8), 2.0)),
         },
 
         // Ground
         Object {
             shape: Box::new(Sphere{ center: Vector3::new(0.0, 1_000_000.0, -0.0), radius: 1_000_000.0 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.3, 0.6, 0.3), Colour::BLACK)),
+            material: Box::new(Gloss::new(Colour::rgb(0.8, 0.8, 0.8), 2.5)),
         },
         ];
 
-    let scene: Scene = Scene{ objects, ambient_light: Colour::rgb(0.5, 0.8, 0.9) };
+    let scene: Scene = Scene{
+        objects,
+        skybox: Box::new(GradientSky{
+            overhead_colour: Colour::rgb(0.5, 0.8, 0.9),
+            horizon_colour: Colour::rgb(0.7, 0.85, 0.9),
+        }),
+    };
     let mut renderer = Renderer::new(scene, camera, 4);
 
     let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];

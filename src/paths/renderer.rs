@@ -60,14 +60,14 @@ impl Renderer {
     }
 
     fn trace_ray(scene: &Scene, ray: Ray, depth: u32) -> Colour {
-        if depth > 4 {
-            return scene.ambient_light;
+        if depth > 10 {
+            return Colour::BLACK;
         }
 
         let (collision, material) = if let Some((c, m)) = scene.find_intersection(ray) {
             (c, m)
         } else {
-            return scene.ambient_light;
+            return scene.skybox.ambient_light(ray.direction * -1);
         };
 
         let cos_out: f64 = ray.direction.dot(collision.normal);

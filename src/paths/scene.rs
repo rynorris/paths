@@ -36,10 +36,54 @@ impl Clone for Box<Shape> {
     }
 }
 
+pub trait Skybox : SkyboxClone + Send {
+    fn ambient_light(&self, direction: Vector3) -> Colour;
+}
+
+pub trait SkyboxClone {
+    fn clone_box(&self) -> Box<Skybox>;
+}
+
+impl <T> SkyboxClone for T where T: 'static + Skybox + Clone {
+    fn clone_box(&self) -> Box<Skybox> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<Skybox> {
+    fn clone(&self) -> Box<Skybox> {
+        self.clone_box()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FlatSky {
+    pub colour: Colour,
+}
+
+impl Skybox for FlatSky {
+    fn ambient_light(&self, _direction: Vector3) -> Colour {
+        self.colour
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct GradientSky {
+    pub overhead_colour: Colour,
+    pub horizon_colour: Colour,
+}
+
+impl Skybox for GradientSky {
+    fn ambient_light(&self, direction: Vector3) -> Colour {
+        let cos_theta = direction.dot(Vector3::new(0.0, 1.0, 0.0));
+        return self.overhead_colour * cos_theta + self.horizon_colour * (1.0 - cos_theta);
+    }
+}
+
 #[derive(Clone)]
 pub struct Scene {
     pub objects: Vec<Object>,
-    pub ambient_light: Colour,
+    pub skybox: Box<Skybox>,
 }
 
 #[derive(Clone, Copy, Debug)]

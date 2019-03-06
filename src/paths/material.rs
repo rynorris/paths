@@ -109,40 +109,46 @@ impl Material for Mirror {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Test {
+pub struct Gloss {
     lambertian: Lambertian,
     mirror: Mirror,
-    reflectance: f64,
+    fresnel_r0: f64,
 }
 
-impl Test {
-    pub fn new(albedo: Colour, reflectance: f64) -> Test {
-        Test {
+impl Gloss {
+    pub fn new(albedo: Colour, reflectance: f64) -> Gloss {
+        let n1: f64 = 1.0;  // Air
+        let n2: f64 = reflectance;
+
+        // Schlick's approximation for the fresnel factor.
+        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
+        Gloss {
             lambertian: Lambertian{ albedo, emittance: Colour::BLACK },
             mirror: Mirror{},
-            reflectance: reflectance,
+            fresnel_r0: r0,
         }
     }
 }
 
-impl Material for Test {
+impl Material for Gloss {
     fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
         let cos_theta = vec_out.dot(normal);
-
-        let n1: f64 = 1.0;  // Air
-        let n2: f64 = 1.5;  // Glass
-
-        // Schlick's approximation for the fresnel factor.
-        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
+        let r0 = self.fresnel_r0;
         let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
         self.lambertian.albedo * (1.0 - r) + Colour::rgb(1.0, 1.0, 1.0) * r
     }
 
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
-        let random_ray = self.lambertian.sample_pdf(vec_out, normal);
-        let mirror_ray = self.mirror.sample_pdf(vec_out, normal);
-        let p = self.reflectance;
-        ((random_ray * (1.0 - p)) + (mirror_ray * p)).normed()
+        let cos_theta = vec_out.dot(normal);
+        let r0 = self.fresnel_r0;
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
+        if rand::thread_rng().gen::<f64>() > r {
+            self.lambertian.sample_pdf(vec_out, normal)
+        } else {
+            self.mirror.sample_pdf(vec_out, normal)
+        }
     }
 
     fn emittance(&self, _vec_out: Vector3, _cos_out: f64) -> Colour {
