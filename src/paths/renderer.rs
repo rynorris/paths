@@ -11,7 +11,7 @@ use crate::paths::scene::Scene;
 
 pub struct Renderer {
     scene: Scene,
-    camera: Camera,
+    pub camera: Camera,
     estimator: Estimator,
     pool: ThreadPool,
 }
@@ -59,6 +59,10 @@ impl Renderer {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.estimator = Estimator::new(self.camera.width as usize, self.camera.height as usize);
+    }
+
     fn trace_ray(scene: &Scene, ray: Ray, depth: u32) -> Colour {
         if depth > 10 {
             return Colour::BLACK;
@@ -83,7 +87,7 @@ impl Renderer {
         }
 
         let new_ray = Ray{
-            origin: collision.location + collision.normal,  // Add the normal as a hack so it doesn't collide with the same object again.
+            origin: collision.location + collision.normal * 0.001,  // Add the normal as a hack so it doesn't collide with the same object again.
             direction: material.sample_pdf(ray.direction * -1, collision.normal),
         };
 

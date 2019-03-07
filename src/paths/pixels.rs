@@ -44,7 +44,8 @@ impl Estimator {
     }
 
     pub fn update_pixel(&mut self, x: usize, y: usize, colour: Colour) {
-        self.means.update(x + (y * self.width), colour);
+        let reflected_y = self.height - y - 1;
+        self.means.update(x + (reflected_y * self.width), colour);
     }
 
     pub fn choose_pixel(&self) -> (usize, usize) {
