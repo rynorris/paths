@@ -12,7 +12,7 @@ use crate::paths::vector::Vector3;
 use sdl2::{event, pixels};
 use sdl2::keyboard::Keycode;
 
-const WIDTH: u32 = 640;
+const WIDTH: u32 = 720;
 const HEIGHT: u32 = 480;
 const SCALE: u32 = 1;
 
@@ -41,32 +41,42 @@ fn main() {
     };
 
     let mut camera = Camera::new(WIDTH, HEIGHT);
+    // All distances in m;
     camera.location.x = 0.0;
-    camera.location.y = -600.0;
-    camera.location.z = -400.0;
-    camera.sensor_width = 32.0;
-    camera.sensor_height = 24.0;
-    camera.focal_length = 9.86;
-    camera.distance_from_lens = 10.0;
-    camera.lens_radius = 20.0;
+    camera.location.y = -2.0;
+    camera.location.z = -10.0;
 
-    let mut yaw: f64 = -0.1;
-    let mut pitch: f64 = -0.1;
-    let mut roll: f64 = -0.1;
+    // Full frame DSLR sensor.
+    camera.sensor_width = 0.036;
+    camera.sensor_height = 0.024;
+
+    // 50mm lens.
+    camera.focal_length = 0.05;
+
+    // Focus on back sphere
+    let focus_distance = (2f64 * 2f64 + 40f64 * 40f64).sqrt();
+    camera.distance_from_lens = (camera.focal_length * focus_distance) / (focus_distance - camera.focal_length);
+
+    // f stop
+    camera.aperture = 0.8;
+
+    let mut yaw: f64 = -0.0;
+    let mut pitch: f64 = -0.0;
+    let mut roll: f64 = -0.0;
     camera.set_orientation(yaw, pitch, roll);
 
     let objects = vec![
         // Objects
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, -100.0, 0.0), radius: 100.0 }),
+            shape: Box::new(Sphere{ center: Vector3::new(0.0, -2.0, 30.0), radius: 2.0 }),
             material: Box::new(Mirror{}),
         },
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(330.0, -200.0, -0.0), radius: 200.0 }),
+            shape: Box::new(Sphere{ center: Vector3::new(3.0, -2.0, 0.0), radius: 2.0 }),
             material: Box::new(Gloss::new(Colour::rgb(0.8, 0.3, 0.3), 1.5)),
         },
         Object {
-            shape: Box::new(Sphere{ center: Vector3::new(-330.0, -200.0, -0.0), radius: 200.0 }),
+            shape: Box::new(Sphere{ center: Vector3::new(-3.0, -2.0, 0.0), radius: 2.0 }),
             material: Box::new(Gloss::new(Colour::rgb(0.0, 0.3, 0.8), 2.0)),
         },
 
@@ -123,19 +133,21 @@ fn main() {
                        renderer.reset();
                        num_samples = 0;
                    },
-                   Some(Keycode::O) => yaw -= 0.2,
-                   Some(Keycode::U) => yaw += 0.2,
-                   Some(Keycode::I) => pitch -= 0.2,
-                   Some(Keycode::K) => pitch += 0.2,
-                   Some(Keycode::J) => roll -= 0.2,
-                   Some(Keycode::L) => roll += 0.2,
+                   Some(Keycode::O) => yaw -= 0.1,
+                   Some(Keycode::U) => yaw += 0.1,
+                   Some(Keycode::I) => pitch -= 0.1,
+                   Some(Keycode::K) => pitch += 0.1,
+                   Some(Keycode::J) => roll -= 0.1,
+                   Some(Keycode::L) => roll += 0.1,
+                   Some(Keycode::W) => renderer.camera.distance_from_lens += 0.00001,
+                   Some(Keycode::Q) => renderer.camera.distance_from_lens -= 0.00001,
                    _ => (),
                 },
                 _ => (),
             }
             renderer.camera.set_orientation(yaw, pitch, roll);
             println!("Yaw: {:.1}, Pitch: {:.1}, Roll: {:.1}", yaw, pitch, roll);
-            println!("F: {:.1}, V: {:.1}, R: {:.1}", renderer.camera.focal_length, renderer.camera.distance_from_lens, renderer.camera.lens_radius);
+            println!("F: {:.1}, V: {:.1}, A: {:.1}", renderer.camera.focal_length, renderer.camera.distance_from_lens, renderer.camera.aperture);
         }
     }
 }

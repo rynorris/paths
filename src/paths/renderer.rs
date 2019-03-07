@@ -87,7 +87,7 @@ impl Renderer {
         }
 
         let new_ray = Ray{
-            origin: collision.location + collision.normal,  // Add the normal as a hack so it doesn't collide with the same object again.
+            origin: collision.location + collision.normal * 0.001,  // Add the normal as a hack so it doesn't collide with the same object again.
             direction: material.sample_pdf(ray.direction * -1, collision.normal),
         };
 

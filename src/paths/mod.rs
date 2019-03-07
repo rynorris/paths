@@ -45,8 +45,8 @@ pub struct Image {
 pub struct Camera {
     pub location: Vector3,  // Center of camera sensor.
     pub focal_length: f64,
-    pub lens_radius: f64,
     pub distance_from_lens: f64,
+    pub aperture: f64,
     rot: Matrix3,
     pub sensor_width: f64,
     pub sensor_height: f64,
@@ -58,9 +58,9 @@ impl Camera {
     pub fn new(width: u32, height: u32) -> Camera {
         let camera = Camera {
             location: Vector3::new(0.0, 0.0, 0.0),
-            focal_length: 1000.0,
-            lens_radius: 1000.0,
-            distance_from_lens: 100.0,
+            focal_length: 9.86,
+            distance_from_lens: 10.0,
+            aperture: 2.0,
             rot: Matrix3::zero(),
             sensor_width: width as f64,
             sensor_height: height as f64,
@@ -92,7 +92,8 @@ impl Camera {
 
         // l = point on lens
         let theta = rng.gen::<f64>();
-        let r = rng.gen::<f64>() * self.lens_radius;
+        let aperture_radius = f / self.aperture;
+        let r = rng.gen::<f64>() * aperture_radius;
         let l = Vector3::new(r * theta.cos(), r * theta.sin(), 0.0);
 
         // this equation for ray direction precomputed by hand to collapse all the terms that go away.
