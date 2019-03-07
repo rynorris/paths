@@ -11,7 +11,7 @@ use crate::paths::scene::Scene;
 
 pub struct Renderer {
     scene: Scene,
-    camera: Camera,
+    pub camera: Camera,
     estimator: Estimator,
     pool: ThreadPool,
 }
@@ -57,6 +57,10 @@ impl Renderer {
             let colour = Renderer::trace_ray(&self.scene, ray, 0);
             self.estimator.update_pixel(x as usize, y as usize, colour);
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.estimator = Estimator::new(self.camera.width as usize, self.camera.height as usize);
     }
 
     fn trace_ray(scene: &Scene, ray: Ray, depth: u32) -> Colour {

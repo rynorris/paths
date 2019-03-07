@@ -42,10 +42,18 @@ fn main() {
 
     let mut camera = Camera::new(WIDTH, HEIGHT);
     camera.location.x = 0.0;
-    camera.location.y = -400.0;
-    camera.location.z = -600.0;
-    camera.focal_length = 400.0;
-    camera.set_orientation(0.0, -0.1, -0.4);
+    camera.location.y = -600.0;
+    camera.location.z = -400.0;
+    camera.sensor_width = 32.0;
+    camera.sensor_height = 24.0;
+    camera.focal_length = 9.86;
+    camera.distance_from_lens = 10.0;
+    camera.lens_radius = 20.0;
+
+    let mut yaw: f64 = -0.1;
+    let mut pitch: f64 = -0.1;
+    let mut roll: f64 = -0.1;
+    camera.set_orientation(yaw, pitch, roll);
 
     let objects = vec![
         // Objects
@@ -91,7 +99,7 @@ fn main() {
         let image = renderer.render();
 
         num_samples += 1;
-        println!("[{:.1?}] Num samples: {:?}", start_time.elapsed(), num_samples);
+        //println!("[{:.1?}] Num samples: {:?}", start_time.elapsed(), num_samples);
 
         for ix in 0 .. image.pixels.len() {
             let colour = image.pixels[ix];
@@ -110,10 +118,24 @@ fn main() {
             match e {
                 event::Event::KeyDown { keycode, .. } => match keycode {
                    Some(Keycode::Escape) => is_running = false,
+                   Some(Keycode::Return) => {
+                       println!("Resetting render");
+                       renderer.reset();
+                       num_samples = 0;
+                   },
+                   Some(Keycode::O) => yaw -= 0.2,
+                   Some(Keycode::U) => yaw += 0.2,
+                   Some(Keycode::I) => pitch -= 0.2,
+                   Some(Keycode::K) => pitch += 0.2,
+                   Some(Keycode::J) => roll -= 0.2,
+                   Some(Keycode::L) => roll += 0.2,
                    _ => (),
                 },
                 _ => (),
             }
+            renderer.camera.set_orientation(yaw, pitch, roll);
+            println!("Yaw: {:.1}, Pitch: {:.1}, Roll: {:.1}", yaw, pitch, roll);
+            println!("F: {:.1}, V: {:.1}, R: {:.1}", renderer.camera.focal_length, renderer.camera.distance_from_lens, renderer.camera.lens_radius);
         }
     }
 }
