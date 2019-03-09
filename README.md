@@ -10,6 +10,7 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [x] Basic path tracing of spheres
 - [ ] Point lights
 - [x] Multithreading
+- [ ] Textures
 - [ ] Triangle meshes
 - [ ] Normal smoothing (of triangle meshes)
 - [x] Importance sampling
