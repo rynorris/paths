@@ -2,6 +2,7 @@
 
 mod paths;
 
+use std::env;
 use std::fs::File;
 use std::time::Instant;
 
@@ -15,20 +16,24 @@ use serde_yaml;
 const SCALE: u32 = 1;
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+
     // Load scene.
-    let scene_filename = "scenes/bokeh_demo.yml";
+    let scene_filename = args.get(1).expect("Path to scene file must be provided");
     let scene_description: SceneDescription = {
         let scene_file = File::open(scene_filename).expect("Could open scene file");
         serde_yaml::from_reader(scene_file).expect("Could parse scene file")
     };
     let scene = scene_description.to_scene();
+    let width = scene_description.camera.image_width;
+    let height = scene_description.camera.image_height;
 
     // Initialize SDL and create window.
     let sdl_context = sdl2::init().unwrap();
     let video = sdl_context.video().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut main_window = video.window("Path Tracer", scene.camera.width * SCALE as u32, scene.camera.height * SCALE as u32)
+    let mut main_window = video.window("Path Tracer", width * SCALE as u32, height * SCALE as u32)
         .position_centered()
         .opengl()
         .build()
@@ -42,7 +47,7 @@ fn main() {
         .unwrap();
 
     let texture_creator = canvas.texture_creator();
-    let mut output_texture = match texture_creator.create_texture_static(Some(pixels::PixelFormatEnum::RGB24), scene.camera.width, scene.camera.height) {
+    let mut output_texture = match texture_creator.create_texture_static(Some(pixels::PixelFormatEnum::RGB24), width, height) {
         Err(cause) => panic!("Failed to create texture: {}", cause),
         Ok(t) => t,
     };
@@ -53,7 +58,7 @@ fn main() {
 
     let mut renderer = Renderer::new(scene, 4);
 
-    let mut texture_buffer: Vec<u8> = vec![0; (scene.camera.width * scene.camera.height * 3) as usize];
+    let mut texture_buffer: Vec<u8> = vec![0; (width * height * 3) as usize];
 
     let mut is_running = true;
 
@@ -77,7 +82,7 @@ fn main() {
         }
 
         canvas.clear();
-        output_texture.update(None, texture_buffer.as_slice(), (scene.camera.height * 3) as usize).expect("Failed to update texture");
+        output_texture.update(None, texture_buffer.as_slice(), (width * 3) as usize).expect("Failed to update texture");
         canvas.copy(&output_texture, None, None).expect("Failed to copy texture to canvas");
         canvas.present();
 

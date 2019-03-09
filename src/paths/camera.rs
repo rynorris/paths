@@ -23,7 +23,7 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(width: u32, height: u32, sampler: Box<dyn Sampler>) -> Camera {
-        let mut camera = Camera {
+        let camera = Camera {
             location: Vector3::new(0.0, 0.0, 0.0),
             focal_length: 9.86,
             distance_from_lens: 10.0,
