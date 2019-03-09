@@ -33,7 +33,7 @@ impl Renderer {
         for x in 0 .. self.camera.width {
             let tx = tx.clone();
             let scene = self.scene.clone();
-            let camera = self.camera.clone();
+            let mut camera = self.camera.clone();
 
             self.pool.execute(move|| {
                 for y in 0 .. camera.height {

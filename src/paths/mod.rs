@@ -3,6 +3,7 @@ pub mod material;
 pub mod matrix;
 pub mod pixels;
 pub mod renderer;
+pub mod sampling;
 pub mod scene;
 pub mod vector;
 
@@ -13,6 +14,7 @@ use rand::Rng;
 
 use self::colour::Colour;
 use self::matrix::Matrix3;
+use self::sampling::Sampler;
 use self::vector::Vector3;
 
 #[derive(Clone, Copy, Debug)]
@@ -52,10 +54,11 @@ pub struct Camera {
     pub sensor_height: f64,
     pub width: u32,
     pub height: u32,
+    sampler: Box<dyn Sampler>,
 }
 
 impl Camera {
-    pub fn new(width: u32, height: u32) -> Camera {
+    pub fn new(width: u32, height: u32, sampler: Box<dyn Sampler>) -> Camera {
         let camera = Camera {
             location: Vector3::new(0.0, 0.0, 0.0),
             focal_length: 9.86,
@@ -66,19 +69,16 @@ impl Camera {
             sensor_height: height as f64,
             width,
             height,
+            sampler,
         };
         camera
     }
 
-    pub fn get_ray_for_pixel(&self, x: u32, y: u32) -> Ray {
-        let mut rng = rand::thread_rng();
-
+    pub fn get_ray_for_pixel(&mut self, x: u32, y: u32) -> Ray {
         // We'll compute the outbound ray first in lens-space where the centre of 
         // the lens is at the origin.
         // Then transform into world space.
         // This makes the refraction through the lens trivially computable.
-        let x_offset: f64 = (x as f64) - ((self.width as f64) / 2.0) + rng.gen::<f64>();
-        let y_offset: f64 = (y as f64) - ((self.height as f64) / 2.0) + rng.gen::<f64>();
 
         // Calculate distance to focal plane.
         let f = self.focal_length;
@@ -86,15 +86,17 @@ impl Camera {
         let p = (f * v) / (v - f);
 
         // k = point on sensor
+        let (x_offset, y_offset) = self.sampler.sample_square();
         let x_scale = self.sensor_width / (self.width as f64);
         let y_scale = self.sensor_height / (self.height as f64);
-        let k = Vector3::new(x_offset * x_scale, y_offset * y_scale, -self.distance_from_lens);
+        let image_x = (x as f64) - (self.width as f64) / 2.0 + x_offset;
+        let image_y = (y as f64) - (self.height as f64) / 2.0 + y_offset;
+        let k = Vector3::new(image_x * x_scale, image_y * y_scale, -self.distance_from_lens);
 
         // l = point on lens
-        let theta = rng.gen::<f64>();
         let aperture_radius = f / self.aperture;
-        let r = rng.gen::<f64>() * aperture_radius;
-        let l = Vector3::new(r * theta.cos(), r * theta.sin(), 0.0);
+        let (lens_x, lens_y) = self.sampler.sample_disk();
+        let l = Vector3::new(lens_x * aperture_radius, lens_y * aperture_radius, 0.0);
 
         // this equation for ray direction precomputed by hand to collapse all the terms that go away.
         let dir = ((k * (p/v)) + l) * -1;
