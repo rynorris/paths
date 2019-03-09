@@ -83,6 +83,7 @@ impl Camera {
     }
 
     pub fn init_bundle(&mut self) {
+        self.sampler.next();
         let (jx, jy) = self.sampler.sample_square();
         self.bundle_offsets = (jx, jy);
 

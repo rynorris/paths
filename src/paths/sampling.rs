@@ -5,6 +5,9 @@ use rand::Rng;
 
 
 pub trait Sampler : SamplerClone + Send {
+    // Moves on to the next sample.
+    fn next(&mut self);
+
     // Samples the unit square, returning x, y.
     fn sample_square(&mut self) -> (f64, f64);
 
@@ -29,9 +32,25 @@ impl Clone for Box<Sampler> {
 }
 
 #[derive(Clone, Debug)]
-pub struct UniformSampler {}
+pub struct UniformSampler {
+    r1: f64,
+    r2: f64,
+}
+
+impl UniformSampler {
+    pub fn new() -> UniformSampler {
+        let mut rng = rand::thread_rng();
+        UniformSampler{ r1: rng.gen(), r2: rng.gen() }
+    }
+}
 
 impl Sampler for UniformSampler {
+    fn next(&mut self) {
+        let mut rng = rand::thread_rng();
+        self.r1 = rng.gen();
+        self.r2 = rng.gen();
+    }
+
     fn sample_square(&mut self) -> (f64, f64) {
         let mut rng = rand::thread_rng();
         (rng.gen(), rng.gen())
@@ -113,16 +132,22 @@ impl CorrelatedMultiJitteredSampler {
 }
 
 impl Sampler for CorrelatedMultiJitteredSampler {
+    fn next(&mut self) {
+        self.s += 1;
+        if self.s > self.m * self.n {
+            self.p += 1;
+            self.s = 0;
+        }
+    }
+
     fn sample_square(&mut self) -> (f64, f64) {
-        let sample = CorrelatedMultiJitteredSampler::cmj(self.s, self.m, self.n, self.p);
-        sample
+        CorrelatedMultiJitteredSampler::cmj(self.s, self.m, self.n, self.p)
     }
 
     fn sample_disk(&mut self) -> (f64, f64) {
         // Sample the square and then map to the disk.
         // Only works if m ~= n
         let (x, y) = CorrelatedMultiJitteredSampler::cmj(self.s, self.m, self.n, self.p + 1);
-        self.s += 1;
 
         let theta = 2.0 * PI * x;
         let r = y.sqrt();
