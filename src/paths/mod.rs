@@ -5,6 +5,7 @@ pub mod pixels;
 pub mod renderer;
 pub mod sampling;
 pub mod scene;
+pub mod serde;
 pub mod vector;
 
 use std::f64::consts::PI;
