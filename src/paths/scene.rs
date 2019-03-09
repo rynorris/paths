@@ -1,3 +1,4 @@
+use crate::paths::camera::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::material::Material;
 use crate::paths::vector::Vector3;
@@ -82,6 +83,7 @@ impl Skybox for GradientSky {
 
 #[derive(Clone)]
 pub struct Scene {
+    pub camera: Camera,
     pub objects: Vec<Object>,
     pub skybox: Box<Skybox>,
 }

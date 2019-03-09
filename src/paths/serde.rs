@@ -1,4 +1,6 @@
+use crate::paths::camera::Camera;
 use crate::paths::colour::Colour;
+use crate::paths::sampling::CorrelatedMultiJitteredSampler;
 use crate::paths::vector::Vector3;
 use crate::paths::material;
 use crate::paths::scene;
@@ -31,6 +33,7 @@ impl ColourDescription {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SceneDescription {
+    pub camera: CameraDescription,
     pub objects: Vec<ObjectDescription>,
     pub skybox: SkyboxDescription,
 }
@@ -41,8 +44,45 @@ impl SceneDescription {
         self.objects.iter().for_each(|o| objects.push(o.to_object()));
         scene::Scene {
             objects,
+            camera: self.camera.to_camera(),
             skybox: self.skybox.to_skybox(),
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CameraDescription {
+    pub image_width: u32,
+    pub image_height: u32,
+
+    pub location: VectorDescription,
+    pub pitch: f64,
+    pub yaw: f64,
+    pub roll: f64,
+
+    pub sensor_width: f64,
+    pub sensor_height: f64,
+    pub focal_length: f64,
+    pub focus_distance: f64,
+    pub aperture: f64,
+}
+
+impl CameraDescription {
+    pub fn to_camera(&self) -> Camera {
+        let mut camera = Camera::new(
+            self.image_width,
+            self.image_height,
+            Box::new(CorrelatedMultiJitteredSampler::new(42, 16, 16)));
+
+        camera.location = self.location.to_vector();
+        camera.set_orientation(self.pitch, self.yaw, self.roll);
+
+        camera.sensor_width = self.sensor_width;
+        camera.sensor_height = self.sensor_height;
+        camera.focal_length = self.focal_length;
+
+        camera.distance_from_lens = (self.focal_length / self.focus_distance) / (self.focus_distance - self.focal_length);
+        camera
     }
 }
 
