@@ -1,28 +1,39 @@
+#[macro_use] extern crate serde_derive;
+
 mod paths;
 
+use std::env;
+use std::fs::File;
 use std::time::Instant;
 
-use crate::paths::Camera;
-use crate::paths::colour::Colour;
-use crate::paths::material::{Lambertian, Mirror, Gloss};
-use crate::paths::scene::{GradientSky, Object, Scene, Sphere};
-use crate::paths::sampling::{CorrelatedMultiJitteredSampler, UniformSampler};
 use crate::paths::renderer::Renderer;
-use crate::paths::vector::Vector3;
+use crate::paths::serde::SceneDescription;
 
 use sdl2::{event, pixels};
 use sdl2::keyboard::Keycode;
+use serde_yaml;
 
-const WIDTH: u32 = 720;
-const HEIGHT: u32 = 480;
 const SCALE: u32 = 1;
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    // Load scene.
+    let scene_filename = args.get(1).expect("Path to scene file must be provided");
+    let scene_description: SceneDescription = {
+        let scene_file = File::open(scene_filename).expect("Could open scene file");
+        serde_yaml::from_reader(scene_file).expect("Could parse scene file")
+    };
+    let scene = scene_description.to_scene();
+    let width = scene_description.camera.image_width;
+    let height = scene_description.camera.image_height;
+
+    // Initialize SDL and create window.
     let sdl_context = sdl2::init().unwrap();
     let video = sdl_context.video().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut main_window = video.window("Path Tracer", WIDTH * SCALE as u32, HEIGHT * SCALE as u32)
+    let mut main_window = video.window("Path Tracer", width * SCALE as u32, height * SCALE as u32)
         .position_centered()
         .opengl()
         .build()
@@ -36,74 +47,18 @@ fn main() {
         .unwrap();
 
     let texture_creator = canvas.texture_creator();
-    let mut output_texture = match texture_creator.create_texture_static(Some(pixels::PixelFormatEnum::RGB24), WIDTH, HEIGHT) {
+    let mut output_texture = match texture_creator.create_texture_static(Some(pixels::PixelFormatEnum::RGB24), width, height) {
         Err(cause) => panic!("Failed to create texture: {}", cause),
         Ok(t) => t,
     };
 
-    let mut camera = Camera::new(WIDTH, HEIGHT, Box::new(CorrelatedMultiJitteredSampler::new(42, 8, 8)));
-   
-    // All distances in m;
-    camera.location.x = 0.0;
-    camera.location.y = -0.01;
-    camera.location.z = -15.0;
+    let mut yaw: f64 = scene_description.camera.yaw;
+    let mut pitch: f64 = scene_description.camera.pitch;
+    let mut roll: f64 = scene_description.camera.roll;
 
-    // Full frame DSLR sensor.
-    camera.sensor_width = 0.036;
-    camera.sensor_height = 0.024;
+    let mut renderer = Renderer::new(scene, 4);
 
-    // 50mm lens.
-    camera.focal_length = 0.05;
-
-    // Focus on back sphere
-    let focus_distance = 1.0;//(2f64 * 2f64 + 40f64 * 40f64).sqrt();
-    camera.distance_from_lens = (camera.focal_length * focus_distance) / (focus_distance - camera.focal_length);
-
-    // f stop
-    camera.aperture = 2.0;
-
-    let mut yaw: f64 = -0.0;
-    let mut pitch: f64 = -0.0;
-    let mut roll: f64 = -0.0;
-    camera.set_orientation(yaw, pitch, roll);
-
-    let objects = vec![
-        // Objects
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, -2.0, 30.0), radius: 2.0 }),
-            material: Box::new(Mirror{}),
-        },
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(3.0, -2.0, 0.0), radius: 2.0 }),
-            material: Box::new(Gloss::new(Colour::rgb(0.8, 0.3, 0.3), 1.5)),
-        },
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(-3.0, -2.0, 0.0), radius: 2.0 }),
-            material: Box::new(Gloss::new(Colour::rgb(0.0, 0.3, 0.8), 2.0)),
-        },
-
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(-0.1, -0.1, -14.00), radius: 0.1 }),
-            material: Box::new(Lambertian::new(Colour::rgb(0.3, 0.8, 0.3), Colour::BLACK)),
-        },
-
-        // Ground
-        Object {
-            shape: Box::new(Sphere{ center: Vector3::new(0.0, 1_000_000.0, -0.0), radius: 1_000_000.0 }),
-            material: Box::new(Gloss::new(Colour::rgb(0.8, 0.8, 0.8), 2.5)),
-        },
-        ];
-
-    let scene: Scene = Scene{
-        objects,
-        skybox: Box::new(GradientSky{
-            overhead_colour: Colour::rgb(0.5, 0.8, 0.9),
-            horizon_colour: Colour::rgb(0.7, 0.85, 0.9),
-        }),
-    };
-    let mut renderer = Renderer::new(scene, camera, 4);
-
-    let mut texture_buffer: Vec<u8> = vec![0; (WIDTH * HEIGHT * 3) as usize];
+    let mut texture_buffer: Vec<u8> = vec![0; (width * height * 3) as usize];
 
     let mut is_running = true;
 
@@ -127,7 +82,7 @@ fn main() {
         }
 
         canvas.clear();
-        output_texture.update(None, texture_buffer.as_slice(), (WIDTH * 3) as usize).expect("Failed to update texture");
+        output_texture.update(None, texture_buffer.as_slice(), (width * 3) as usize).expect("Failed to update texture");
         canvas.copy(&output_texture, None, None).expect("Failed to copy texture to canvas");
         canvas.present();
 
@@ -146,15 +101,18 @@ fn main() {
                    Some(Keycode::K) => pitch += 0.1,
                    Some(Keycode::J) => roll -= 0.1,
                    Some(Keycode::L) => roll += 0.1,
-                   Some(Keycode::W) => renderer.camera.distance_from_lens += 0.00001,
-                   Some(Keycode::Q) => renderer.camera.distance_from_lens -= 0.00001,
+                   Some(Keycode::W) => renderer.scene.camera.distance_from_lens += 0.00001,
+                   Some(Keycode::Q) => renderer.scene.camera.distance_from_lens -= 0.00001,
                    _ => (),
                 },
                 _ => (),
             }
-            renderer.camera.set_orientation(yaw, pitch, roll);
+            renderer.scene.camera.set_orientation(yaw, pitch, roll);
             println!("Yaw: {:.1}, Pitch: {:.1}, Roll: {:.1}", yaw, pitch, roll);
-            println!("F: {:.1}, V: {:.1}, A: {:.1}", renderer.camera.focal_length, renderer.camera.distance_from_lens, renderer.camera.aperture);
+            println!("F: {:.1}, V: {:.1}, A: {:.1}",
+                     renderer.scene.camera.focal_length,
+                     renderer.scene.camera.distance_from_lens,
+                     renderer.scene.camera.aperture);
         }
     }
 }

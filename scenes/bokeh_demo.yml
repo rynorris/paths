@@ -1,0 +1,60 @@
+camera:
+  image_width: 720
+  image_height: 480
+  location: { x: 0.0, y: -0.01, z: -15.0 }
+  yaw: 0.0
+  pitch: 0.0
+  roll: 0.0
+  sensor_width: 0.036
+  sensor_height: 0.024
+  focal_length: 0.05
+  focus_distance: 1.0
+  aperture: 2.0
+
+skybox:
+  type: Gradient
+  overhead_colour: { r: 0.5, g: 0.8, b: 0.9 }
+  horizon_colour: { r: 0.7, g: 0.85, b: 0.9 }
+
+objects:
+  - shape:
+      type: Sphere
+      radius: 2.0
+      center: { x: 0.0, y: -2.0, z: 30.0 }
+    material:
+      type: Mirror
+
+  - shape:
+      type: Sphere
+      radius: 2.0
+      center: { x: 3.0, y: -2.0, z: 0.0 }
+    material:
+      type: Gloss
+      albedo: { r: 0.8, g: 0.3, b: 0.3 }
+      reflectance: 1.5
+
+  - shape:
+      type: Sphere
+      radius: 2.0
+      center: { x: -3.0, y: -2.0, z: 0.0 }
+    material:
+      type: Gloss
+      albedo: { r: 0.3, g: 0.3, b: 0.8 }
+      reflectance: 2.0
+
+  - shape:
+      type: Sphere
+      radius: 0.1
+      center: { x: -0.1, y: -0.1, z: -14.0 }
+    material:
+      type: Lambertian
+      albedo: { r: 0.3, g: 0.8, b: 0.3 }
+
+  - shape:
+      type: Sphere
+      radius: 1000000.0
+      center: { x: 0.0, y: 1000000.0, z: 0.0 }
+    material:
+      type: Gloss
+      albedo: { r: 0.8, g: 0.8, b: 0.8 }
+      reflectance: 2.5
