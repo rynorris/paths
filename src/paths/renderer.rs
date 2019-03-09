@@ -30,6 +30,8 @@ impl Renderer {
     pub fn trace_full_pass(&mut self) {
         let (tx, rx) = channel::<(u32, u32, Colour)>();
 
+        self.camera.init_bundle();
+
         for x in 0 .. self.camera.width {
             let tx = tx.clone();
             let scene = self.scene.clone();
