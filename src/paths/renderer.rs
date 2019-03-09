@@ -8,6 +8,7 @@ use crate::paths::{Camera, Image, Ray};
 use crate::paths::colour::{Colour};
 use crate::paths::pixels::Estimator;
 use crate::paths::scene::Scene;
+use crate::paths::vector::Vector3;
 
 pub struct Renderer {
     scene: Scene,
@@ -30,15 +31,18 @@ impl Renderer {
     pub fn trace_full_pass(&mut self) {
         let (tx, rx) = channel::<(u32, u32, Colour)>();
 
+        self.camera.init_bundle();
+
         for x in 0 .. self.camera.width {
             let tx = tx.clone();
             let scene = self.scene.clone();
-            let camera = self.camera.clone();
+            let mut camera = self.camera.clone();
 
             self.pool.execute(move|| {
                 for y in 0 .. camera.height {
                     let ray = camera.get_ray_for_pixel(x, y);
-                    let colour = Renderer::trace_ray(&scene, ray, 0);
+                    let weight = ray.direction.dot(Vector3::new(0.0, 0.0, 1.0));
+                    let colour = Renderer::trace_ray(&scene, ray, 0) * weight;
                     tx.send((x, y, colour)).expect("can send result back");
                 }
             });
@@ -87,7 +91,7 @@ impl Renderer {
         }
 
         let new_ray = Ray{
-            origin: collision.location + collision.normal * 0.001,  // Add the normal as a hack so it doesn't collide with the same object again.
+            origin: collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
             direction: material.sample_pdf(ray.direction * -1, collision.normal),
         };
 

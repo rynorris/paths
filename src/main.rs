@@ -6,6 +6,7 @@ use crate::paths::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::material::{Lambertian, Mirror, Gloss};
 use crate::paths::scene::{GradientSky, Object, Scene, Sphere};
+use crate::paths::sampling::{CorrelatedMultiJitteredSampler, UniformSampler};
 use crate::paths::renderer::Renderer;
 use crate::paths::vector::Vector3;
 
@@ -40,11 +41,12 @@ fn main() {
         Ok(t) => t,
     };
 
-    let mut camera = Camera::new(WIDTH, HEIGHT);
+    let mut camera = Camera::new(WIDTH, HEIGHT, Box::new(CorrelatedMultiJitteredSampler::new(42, 8, 8)));
+   
     // All distances in m;
     camera.location.x = 0.0;
-    camera.location.y = -2.0;
-    camera.location.z = -10.0;
+    camera.location.y = -0.01;
+    camera.location.z = -15.0;
 
     // Full frame DSLR sensor.
     camera.sensor_width = 0.036;
@@ -54,11 +56,11 @@ fn main() {
     camera.focal_length = 0.05;
 
     // Focus on back sphere
-    let focus_distance = (2f64 * 2f64 + 40f64 * 40f64).sqrt();
+    let focus_distance = 1.0;//(2f64 * 2f64 + 40f64 * 40f64).sqrt();
     camera.distance_from_lens = (camera.focal_length * focus_distance) / (focus_distance - camera.focal_length);
 
     // f stop
-    camera.aperture = 0.8;
+    camera.aperture = 2.0;
 
     let mut yaw: f64 = -0.0;
     let mut pitch: f64 = -0.0;
@@ -78,6 +80,11 @@ fn main() {
         Object {
             shape: Box::new(Sphere{ center: Vector3::new(-3.0, -2.0, 0.0), radius: 2.0 }),
             material: Box::new(Gloss::new(Colour::rgb(0.0, 0.3, 0.8), 2.0)),
+        },
+
+        Object {
+            shape: Box::new(Sphere{ center: Vector3::new(-0.1, -0.1, -14.00), radius: 0.1 }),
+            material: Box::new(Lambertian::new(Colour::rgb(0.3, 0.8, 0.3), Colour::BLACK)),
         },
 
         // Ground
@@ -109,7 +116,7 @@ fn main() {
         let image = renderer.render();
 
         num_samples += 1;
-        //println!("[{:.1?}] Num samples: {:?}", start_time.elapsed(), num_samples);
+        println!("[{:.1?}] Num samples: {:?}", start_time.elapsed(), num_samples);
 
         for ix in 0 .. image.pixels.len() {
             let colour = image.pixels[ix];
