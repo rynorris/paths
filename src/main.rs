@@ -6,7 +6,7 @@ use crate::paths::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::material::{Lambertian, Mirror, Gloss};
 use crate::paths::scene::{GradientSky, Object, Scene, Sphere};
-use crate::paths::sampling::UniformSampler;
+use crate::paths::sampling::{CorrelatedMultiJitteredSampler, UniformSampler};
 use crate::paths::renderer::Renderer;
 use crate::paths::vector::Vector3;
 
@@ -41,7 +41,7 @@ fn main() {
         Ok(t) => t,
     };
 
-    let mut camera = Camera::new(WIDTH, HEIGHT, Box::new(UniformSampler{}));
+    let mut camera = Camera::new(WIDTH, HEIGHT, Box::new(CorrelatedMultiJitteredSampler::new(42, 8, 8)));
     // All distances in m;
     camera.location.x = 0.0;
     camera.location.y = -2.0;
