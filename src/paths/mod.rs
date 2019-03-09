@@ -83,7 +83,8 @@ impl Camera {
     }
 
     pub fn init_bundle(&mut self) {
-        self.bundle_offsets = self.sampler.sample_square();
+        let (jx, jy) = self.sampler.sample_square();
+        self.bundle_offsets = (jx, jy);
 
         let aperture_radius = self.focal_length / self.aperture;
         let (lens_x, lens_y) = self.sampler.sample_disk();

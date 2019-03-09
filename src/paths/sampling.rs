@@ -101,8 +101,9 @@ impl CorrelatedMultiJitteredSampler {
     // m, n = sample dimensions (m x n = N = number of samples total)
     // p = pattern index (like a seed)
     fn cmj(s: u32, m: u32, n: u32, p: u32) -> (f64, f64) {
-        let sx: f64 = CorrelatedMultiJitteredSampler::permute(s % m, m, p * 0xa511_e9b3) as f64;
-        let sy: f64 = CorrelatedMultiJitteredSampler::permute(s / m, n, p * 0x63d8_3595) as f64;
+        let ps: u32 = CorrelatedMultiJitteredSampler::permute(s, m*n, p * 0xa73b_d290);
+        let sx: f64 = CorrelatedMultiJitteredSampler::permute(ps % m, m, p * 0xa511_e9b3) as f64;
+        let sy: f64 = CorrelatedMultiJitteredSampler::permute(ps / m, n, p * 0x63d8_3595) as f64;
         let jx: f64 = CorrelatedMultiJitteredSampler::rand_float(s, p * 0xa399_d265);
         let jy: f64 = CorrelatedMultiJitteredSampler::rand_float(s, p * 0x711a_d6a5);
         let x: f64 = (((s % m) as f64) + (sy + jx) / (n as f64)) / (m as f64);
@@ -114,15 +115,14 @@ impl CorrelatedMultiJitteredSampler {
 impl Sampler for CorrelatedMultiJitteredSampler {
     fn sample_square(&mut self) -> (f64, f64) {
         let sample = CorrelatedMultiJitteredSampler::cmj(self.s, self.m, self.n, self.p);
-        self.n += 1;
         sample
     }
 
     fn sample_disk(&mut self) -> (f64, f64) {
         // Sample the square and then map to the disk.
         // Only works if m ~= n
-        let (x, y) = CorrelatedMultiJitteredSampler::cmj(self.s, self.m, self.n, self.p);
-        self.n += 1;
+        let (x, y) = CorrelatedMultiJitteredSampler::cmj(self.s, self.m, self.n, self.p + 1);
+        self.s += 1;
 
         let theta = 2.0 * PI * x;
         let r = y.sqrt();
