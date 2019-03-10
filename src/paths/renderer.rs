@@ -1,3 +1,4 @@
+use std::sync::{Arc};
 use std::sync::mpsc::channel;
 
 use rand;
@@ -10,13 +11,13 @@ use crate::paths::pixels::Estimator;
 use crate::paths::scene::Scene;
 
 pub struct Renderer {
-    pub scene: Scene,
+    pub scene: Arc<Scene>,
     estimator: Estimator,
     pool: ThreadPool,
 }
 
 impl Renderer {
-    pub fn new(scene: Scene, num_workers: usize) -> Renderer {
+    pub fn new(scene: Arc<Scene>, num_workers: usize) -> Renderer {
         let estimator = Estimator::new(scene.camera.width as usize, scene.camera.height as usize);
         let pool = ThreadPool::new(num_workers);
         Renderer{ scene, estimator, pool}
@@ -29,7 +30,7 @@ impl Renderer {
     pub fn trace_full_pass(&mut self) {
         let (tx, rx) = channel::<(u32, u32, Colour)>();
 
-        self.scene.camera.init_bundle();
+        Arc::get_mut(&mut self.scene).expect("Can get mutable reference to scene").camera.init_bundle();
 
         for x in 0 .. self.scene.camera.width {
             let tx = tx.clone();

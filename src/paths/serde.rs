@@ -7,9 +7,9 @@ use crate::paths::scene;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct VectorDescription {
-    x: f64,
-    y: f64,
-    z: f64,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
 impl VectorDescription {
@@ -20,9 +20,9 @@ impl VectorDescription {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ColourDescription {
-    r: f64,
-    g: f64,
-    b: f64,
+    pub r: f64,
+    pub g: f64,
+    pub b: f64,
 }
 
 impl ColourDescription {
@@ -42,11 +42,7 @@ impl SceneDescription {
     pub fn to_scene(&self) -> scene::Scene {
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
         self.objects.iter().for_each(|o| objects.push(o.to_object()));
-        scene::Scene {
-            objects,
-            camera: self.camera.to_camera(),
-            skybox: self.skybox.to_skybox(),
-        }
+        scene::Scene::new(self.camera.to_camera(), objects, self.skybox.to_skybox())
     }
 }
 

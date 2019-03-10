@@ -1,3 +1,4 @@
+use crate::paths::bvh::{construct_bvh_aac, AABB, BoundedVolume, BVH, Collision};
 use crate::paths::camera::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::material::Material;
@@ -10,16 +11,19 @@ pub struct Object {
     pub material: Box<dyn Material>,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Collision {
-    pub distance: f64,
-    pub location: Vector3,
-    pub normal: Vector3,
+impl BoundedVolume for Object {
+    fn aabb(&self) -> AABB {
+        self.shape.aabb()
+    }
+
+    fn intersect(&self, ray: Ray) -> Option<Collision> {
+        self.shape.intersect(ray)
+    }
 }
 
-pub trait Shape : ShapeClone + Send {
-    fn intersect(&self, ray: Ray) -> Option<Collision>;
-}
+pub trait Shape : BoundedVolume + ShapeClone + Send + Sync {}
+
+impl <T : 'static + BoundedVolume + Clone + Send + Sync> Shape for T {}
 
 pub trait ShapeClone {
     fn clone_box(&self) -> Box<Shape>;
@@ -37,7 +41,7 @@ impl Clone for Box<Shape> {
     }
 }
 
-pub trait Skybox : SkyboxClone + Send {
+pub trait Skybox : SkyboxClone + Send + Sync {
     fn ambient_light(&self, direction: Vector3) -> Colour;
 }
 
@@ -81,20 +85,13 @@ impl Skybox for GradientSky {
     }
 }
 
-#[derive(Clone)]
-pub struct Scene {
-    pub camera: Camera,
-    pub objects: Vec<Object>,
-    pub skybox: Box<Skybox>,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct Sphere {
     pub center: Vector3,
     pub radius: f64,
 }
 
-impl Shape for Sphere {
+impl BoundedVolume for Sphere {
     fn intersect(&self, ray: Ray) -> Option<Collision> {
         let c = self.center;
         let r = self.radius;
@@ -122,14 +119,26 @@ impl Shape for Sphere {
         let normal = (location - c).normed();
         Some(Collision{ distance, location, normal, })
     }
+
+    fn aabb(&self) -> AABB {
+        let rad_vec = Vector3::new(self.radius, self.radius, self.radius);
+        AABB::new(self.center - rad_vec, self.center + rad_vec)
+    }
+}
+
+pub struct Scene {
+    pub camera: Camera,
+    pub skybox: Box<Skybox>,
+    bvh: BVH<Object>,
 }
 
 impl Scene {
+    pub fn new(camera: Camera, objects: Vec<Object>, skybox: Box<Skybox>) -> Scene {
+        let bvh = construct_bvh_aac(objects);
+        Scene { camera, skybox, bvh }
+    }
+
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Box<Material>)> {
-        self.objects.iter()
-            .map(|o| o.shape.intersect(ray).map(|col| (col, o.material.clone())))
-            .filter(|o| o.is_some())
-            .map(|o| o.unwrap())
-            .min_by(|(c1, _), (c2, _)| c1.distance.partial_cmp(&c2.distance).unwrap_or(std::cmp::Ordering::Equal))
+        self.bvh.find_intersection(ray).map(|(col, obj)| (col, obj.material.clone()))
     }
 }

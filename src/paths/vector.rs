@@ -40,10 +40,10 @@ impl Vector3 {
     pub fn form_basis(&self) -> (Vector3, Vector3, Vector3) {
         let j = *self;
 
-        let i = if j.x.abs() <= 0.1 {
+        let i = if j.x.abs() == 0.0 {
             Vector3::new(1.0, 0.0, 0.0)
         } else {
-            j.cross(Vector3::new(0.0, 1.0, 0.0))
+            j.cross(Vector3::new(0.0, 1.0, 0.0)).normed()
         };
         let k = i.cross(j);
         (i, j, k)

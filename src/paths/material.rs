@@ -6,7 +6,7 @@ use rand::Rng;
 use crate::paths::colour::Colour;
 use crate::paths::vector::Vector3;
 
-pub trait Material : MaterialClone + Send {
+pub trait Material : MaterialClone + Send + Sync {
     fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour;
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3;
     fn emittance(&self, vec_out: Vector3, cos_out: f64) -> Colour;
