@@ -26,14 +26,6 @@ impl Matrix3 {
         Matrix3::from_vec(vec![0.0; 9])
     }
 
-    pub fn identity() -> Matrix3 {
-        Matrix3::from_vec(vec![
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        ])
-    }
-
     pub fn rotation(yaw: f64, pitch: f64, roll: f64) -> Matrix3 {
         let m_yaw = Matrix3::rotation_z(yaw);
         let m_pitch = Matrix3::rotation_y(pitch);
