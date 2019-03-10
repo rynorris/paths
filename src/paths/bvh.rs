@@ -290,6 +290,7 @@ fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> 
         let mut left: usize = 0;
         let mut right: usize = 0;
         for ix in 0 .. clusters.len() {
+            println!("ix: {:?}, closest: {:?}", ix, closest[ix]);
             let c = cost(&clusters[ix], &clusters[closest[ix]]);
             if c < best {
                 best = c;
@@ -312,10 +313,14 @@ fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> 
         clusters.push(combined);
         closest.push(find_best_match(&clusters, clusters.len() - 1));
 
-        // Recompute any invalidated closest pairs.
+        // Adjust or recompute any invalidated closest pairs.
         for ix in 0 .. clusters.len() {
             if closest[ix] == left || closest[ix] == right {
                 closest[ix] = find_best_match(&clusters, ix);
+            } else if closest[ix] >= right {
+                closest[ix] -= 2;
+            } else if closest[ix] >= left {
+                closest[ix] -= 1;
             }
         }
     }

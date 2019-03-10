@@ -1,6 +1,7 @@
 #[macro_use] extern crate serde_derive;
 
 mod paths;
+mod stress;
 
 use std::env;
 use std::fs::File;
@@ -20,11 +21,14 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // Load scene.
+    /*
     let scene_filename = args.get(1).expect("Path to scene file must be provided");
     let scene_description: SceneDescription = {
         let scene_file = File::open(scene_filename).expect("Could open scene file");
         serde_yaml::from_reader(scene_file).expect("Could parse scene file")
     };
+    */
+    let scene_description = stress::generate_stress_scene(500);
     let scene = scene_description.to_scene();
     let width = scene_description.camera.image_width;
     let height = scene_description.camera.image_height;

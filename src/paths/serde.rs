@@ -7,9 +7,9 @@ use crate::paths::scene;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct VectorDescription {
-    x: f64,
-    y: f64,
-    z: f64,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
 impl VectorDescription {
@@ -20,9 +20,9 @@ impl VectorDescription {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ColourDescription {
-    r: f64,
-    g: f64,
-    b: f64,
+    pub r: f64,
+    pub g: f64,
+    pub b: f64,
 }
 
 impl ColourDescription {
