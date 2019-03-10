@@ -223,7 +223,7 @@ pub fn construct_bvh_aac<T : BoundedVolume>(mut objects: Vec<T>) -> BVH<T> {
     // Sort by morton code.
     nodes_with_mc.sort_unstable_by_key(|(_, mc)| *mc);
 
-    let clusters: Vec<Node<T>> = build_tree(nodes_with_mc, 0);
+    let clusters: Vec<Node<T>> = build_tree(nodes_with_mc, num_bits, 0);
 
     let mut final_clusters: Vec<Node<T>> = combine_clusters(clusters, 1);
 
@@ -232,17 +232,24 @@ pub fn construct_bvh_aac<T : BoundedVolume>(mut objects: Vec<T>) -> BVH<T> {
     BVH { root }
 }
 
-fn build_tree<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, depth: u16) -> Vec<Node<T>> {
+fn build_tree<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, max_depth: u16, depth: u16) -> Vec<Node<T>> {
     let num_clusters = clusters.len();
     if num_clusters < DELTA {
         return combine_clusters(clusters.drain(..).map(|(n, _)| n).collect(), ccrf(DELTA));
     }
 
-    let (lhs, rhs) = make_partition(clusters, depth);
+    let (lhs, rhs) = if depth < max_depth {
+        make_partition(clusters, depth)
+    } else {
+        let mid = clusters.len() / 2;
+        let rhs = clusters.split_off(mid);
+        (clusters, rhs)
+    };
+
     println!("Partitioned clusters using morton code bit {:?} into ({:?}, {:?})",
         depth, lhs.len(), rhs.len());
-    let mut new_clusters = build_tree(lhs, depth + 1);
-    new_clusters.append(&mut build_tree(rhs, depth + 1));
+    let mut new_clusters = build_tree(lhs, max_depth, depth + 1);
+    new_clusters.append(&mut build_tree(rhs, max_depth, depth + 1));
     
     combine_clusters(new_clusters, ccrf(num_clusters))
 }
