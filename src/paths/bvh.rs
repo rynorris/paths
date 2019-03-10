@@ -1,4 +1,15 @@
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+
+use crate::paths::Ray;
 use crate::paths::vector::Vector3;
+
+#[derive(Clone, Copy, Debug)]
+pub struct Collision {
+    pub distance: f64,
+    pub location: Vector3,
+    pub normal: Vector3,
+}
 
 pub struct AABB {
     pub min: Vector3,
@@ -13,16 +24,31 @@ impl AABB {
     }
 }
 
-pub trait BoundedVolume {
-    fn aabb(&self) -> AABB;
+fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
+    // TODO: Implement.
+    None
 }
 
-enum Node<T : BoundedVolume> {
+pub trait BoundedVolume {
+    fn aabb(&self) -> AABB;
+    fn intersect(&self, ray: Ray) -> Option<Collision>;
+}
+
+enum Node<T> {
     Leaf(LeafNode<T>),
     Cluster(ClusterNode<T>),
 }
 
-struct LeafNode<T : BoundedVolume> {
+impl <T> Node<T> {
+    pub fn aabb(&self) -> &AABB {
+        match self {
+            Node::Leaf(leaf) => &leaf.aabb,
+            Node::Cluster(clus) => &clus.aabb,
+        }
+    }
+}
+
+struct LeafNode<T> {
     obj: T,
     aabb: AABB,
 }
@@ -34,7 +60,7 @@ impl <T : BoundedVolume> LeafNode<T> {
     }
 }
 
-struct ClusterNode<T : BoundedVolume> {
+struct ClusterNode<T> {
     left: Box<Node<T>>,
     right: Box<Node<T>>,
     aabb: AABB,
@@ -57,9 +83,74 @@ impl <T : BoundedVolume> ClusterNode<T> {
     }
 }
 
-pub struct BVH<T : BoundedVolume> {
+pub struct BVH<T> {
     root: Node<T>
 }
+
+impl <T : BoundedVolume> BVH<T> {
+    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, &T)> {
+        let mut q: BinaryHeap<SearchNode<T>> = BinaryHeap::new();
+
+        if let Some(distance) = ray_box_collide(&ray, &self.root.aabb()) {
+            q.push(SearchNode{ node: &self.root, distance });
+        }
+
+        while !q.is_empty() {
+            let sn = q.pop().expect("Queue is not empty");
+            match sn.node {
+                Node::Leaf(ref leaf) => {
+                    if let Some(col) = leaf.obj.intersect(ray) {
+                        return Some((col, &leaf.obj));
+                    }
+                },
+                Node::Cluster(clus) => {
+                    if let Some(distance) = ray_box_collide(&ray, &clus.left.aabb()) {
+                        q.push(SearchNode{ node: &clus.left, distance });
+                    }
+
+                    if let Some(distance) = ray_box_collide(&ray, &clus.right.aabb()) {
+                        q.push(SearchNode{ node: &clus.right, distance });
+                    }
+                },
+            }
+        }
+        None
+    }
+
+}
+
+struct SearchNode<'a, T : BoundedVolume> {
+    node: &'a Node<T>,
+    distance: f64,
+}
+
+impl <'a, T : BoundedVolume> Ord for SearchNode<'a, T> {
+
+    // Reversed ordering so that our BinaryHeap becomes a min heap.
+    fn cmp(&self, other: &SearchNode<T>) -> Ordering {
+        if self.distance < other.distance {
+            Ordering::Less
+        } else if self.distance > other.distance {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    }
+}
+
+impl <'a, T : BoundedVolume> PartialOrd for SearchNode<'a, T> {
+    fn partial_cmp(&self, other: &SearchNode<T>) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl <'a, T : BoundedVolume> PartialEq for SearchNode<'a, T> {
+    fn eq(&self, other: &SearchNode<T>) -> bool {
+        self.distance == other.distance
+    }
+}
+
+impl <'a, T : BoundedVolume> Eq for SearchNode<'a, T> {}
 
 // This algorithm for constructing the BVH taken from http://graphics.cs.cmu.edu/projects/aac/aac_build.pdf
 // Note that the authors of this paper made several optimizations to get the reported construction speed.
@@ -87,22 +178,13 @@ pub fn construct_bvh_aac<T : BoundedVolume>(mut objects: Vec<T>) -> BVH<T> {
     // Need to make sure that the largest bit of the largest component fits in num_bits.
     // But also want as much precision as possible.
     let cap = (1 << num_bits) as f64;
-    let max = nodes.iter().map(|n| {
-        let c = match n {
-            Node::Leaf(leaf) => leaf.aabb.center,
-            Node::Cluster(clus) => clus.aabb.center,
-        };
-
-        c.max()
-    }).fold(0./0., f64::max);  // Hack to get max for floats.
+    let max = nodes.iter()
+        .map(|n| n.aabb().center.max())
+        .fold(0./0., f64::max);  // Hack to get max for floats.
     let scale = cap / max;
 
     let mut nodes_with_mc: Vec<(Node<T>, u64)> = nodes.drain(..).map(|n| {
-        let c = match n {
-            Node::Leaf(ref leaf) => leaf.aabb.center,
-            Node::Cluster(ref clus) => clus.aabb.center,
-        };
-
+        let c = n.aabb().center;
         let mc = morton_code(num_bits, (c.x * scale) as u16, (c.y * scale) as u16, (c.z * scale) as u16);
         (n, mc)
     }).collect();
@@ -227,16 +309,8 @@ fn find_best_match<T : BoundedVolume>(clusters: &Vec<Node<T>>, ix: usize) -> usi
 
 // Cost is the surface area of the combined bounding box.
 fn cost<T : BoundedVolume>(c1: &Node<T>, c2: &Node<T>) -> f64 {
-    let aabb1 = match c1 {
-        Node::Leaf(leaf) => &leaf.aabb,
-        Node::Cluster(clus) => &clus.aabb,
-    };
-
-    let aabb2 = match c2 {
-        Node::Leaf(leaf) => &leaf.aabb,
-        Node::Cluster(clus) => &clus.aabb,
-    };
-
+    let aabb1 = c1.aabb();
+    let aabb2 = c2.aabb();
     let combined_aabb = combine_aabb(aabb1, aabb2);
     surface_area(combined_aabb)
 }

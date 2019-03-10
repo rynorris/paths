@@ -1,4 +1,4 @@
-use crate::paths::bvh::{AABB, BoundedVolume};
+use crate::paths::bvh::{AABB, BoundedVolume, Collision};
 use crate::paths::camera::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::material::Material;
@@ -11,16 +11,19 @@ pub struct Object {
     pub material: Box<dyn Material>,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Collision {
-    pub distance: f64,
-    pub location: Vector3,
-    pub normal: Vector3,
+impl BoundedVolume for Object {
+    fn aabb(&self) -> AABB {
+        self.shape.aabb()
+    }
+
+    fn intersect(&self, ray: Ray) -> Option<Collision> {
+        self.shape.intersect(ray)
+    }
 }
 
-pub trait Shape : BoundedVolume + ShapeClone + Send {
-    fn intersect(&self, ray: Ray) -> Option<Collision>;
-}
+pub trait Shape : BoundedVolume + ShapeClone + Send {}
+
+impl <T : 'static + BoundedVolume + Clone + Send> Shape for T {}
 
 pub trait ShapeClone {
     fn clone_box(&self) -> Box<Shape>;
@@ -95,7 +98,7 @@ pub struct Sphere {
     pub radius: f64,
 }
 
-impl Shape for Sphere {
+impl BoundedVolume for Sphere {
     fn intersect(&self, ray: Ray) -> Option<Collision> {
         let c = self.center;
         let r = self.radius;
@@ -123,9 +126,7 @@ impl Shape for Sphere {
         let normal = (location - c).normed();
         Some(Collision{ distance, location, normal, })
     }
-}
 
-impl BoundedVolume for Sphere {
     fn aabb(&self) -> AABB {
         let rad_vec = Vector3::new(self.radius, self.radius, self.radius);
         AABB::new(self.center - rad_vec, self.center + rad_vec)
