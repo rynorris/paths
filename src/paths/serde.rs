@@ -42,11 +42,7 @@ impl SceneDescription {
     pub fn to_scene(&self) -> scene::Scene {
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
         self.objects.iter().for_each(|o| objects.push(o.to_object()));
-        scene::Scene {
-            objects,
-            camera: self.camera.to_camera(),
-            skybox: self.skybox.to_skybox(),
-        }
+        scene::Scene::new(self.camera.to_camera(), objects, self.skybox.to_skybox())
     }
 }
 

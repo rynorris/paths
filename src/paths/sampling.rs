@@ -4,7 +4,7 @@ use rand;
 use rand::Rng;
 
 
-pub trait Sampler : SamplerClone + Send {
+pub trait Sampler : SamplerClone + Send + Sync {
     // Moves on to the next sample.
     fn next(&mut self);
 

@@ -4,6 +4,7 @@ mod paths;
 
 use std::env;
 use std::fs::File;
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::paths::renderer::Renderer;
@@ -56,7 +57,7 @@ fn main() {
     let mut pitch: f64 = scene_description.camera.pitch;
     let mut roll: f64 = scene_description.camera.roll;
 
-    let mut renderer = Renderer::new(scene, 4);
+    let mut renderer = Renderer::new(Arc::new(scene), 4);
 
     let mut texture_buffer: Vec<u8> = vec![0; (width * height * 3) as usize];
 
@@ -101,13 +102,14 @@ fn main() {
                    Some(Keycode::K) => pitch += 0.1,
                    Some(Keycode::J) => roll -= 0.1,
                    Some(Keycode::L) => roll += 0.1,
-                   Some(Keycode::W) => renderer.scene.camera.distance_from_lens += 0.00001,
-                   Some(Keycode::Q) => renderer.scene.camera.distance_from_lens -= 0.00001,
+                   Some(Keycode::W) => Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.distance_from_lens += 0.00001,
+                   Some(Keycode::Q) => Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.distance_from_lens -= 0.00001,
                    _ => (),
                 },
                 _ => (),
             }
-            renderer.scene.camera.set_orientation(yaw, pitch, roll);
+
+            Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.set_orientation(yaw, pitch, roll);
             println!("Yaw: {:.1}, Pitch: {:.1}, Roll: {:.1}", yaw, pitch, roll);
             println!("F: {:.1}, V: {:.1}, A: {:.1}",
                      renderer.scene.camera.focal_length,

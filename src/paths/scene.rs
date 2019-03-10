@@ -1,4 +1,4 @@
-use crate::paths::bvh::{AABB, BoundedVolume, Collision};
+use crate::paths::bvh::{construct_bvh_aac, AABB, BoundedVolume, BVH, Collision};
 use crate::paths::camera::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::material::Material;
@@ -21,9 +21,9 @@ impl BoundedVolume for Object {
     }
 }
 
-pub trait Shape : BoundedVolume + ShapeClone + Send {}
+pub trait Shape : BoundedVolume + ShapeClone + Send + Sync {}
 
-impl <T : 'static + BoundedVolume + Clone + Send> Shape for T {}
+impl <T : 'static + BoundedVolume + Clone + Send + Sync> Shape for T {}
 
 pub trait ShapeClone {
     fn clone_box(&self) -> Box<Shape>;
@@ -41,7 +41,7 @@ impl Clone for Box<Shape> {
     }
 }
 
-pub trait Skybox : SkyboxClone + Send {
+pub trait Skybox : SkyboxClone + Send + Sync {
     fn ambient_light(&self, direction: Vector3) -> Colour;
 }
 
@@ -85,13 +85,6 @@ impl Skybox for GradientSky {
     }
 }
 
-#[derive(Clone)]
-pub struct Scene {
-    pub camera: Camera,
-    pub objects: Vec<Object>,
-    pub skybox: Box<Skybox>,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct Sphere {
     pub center: Vector3,
@@ -133,12 +126,19 @@ impl BoundedVolume for Sphere {
     }
 }
 
+pub struct Scene {
+    pub camera: Camera,
+    pub skybox: Box<Skybox>,
+    bvh: BVH<Object>,
+}
+
 impl Scene {
+    pub fn new(camera: Camera, objects: Vec<Object>, skybox: Box<Skybox>) -> Scene {
+        let bvh = construct_bvh_aac(objects);
+        Scene { camera, skybox, bvh }
+    }
+
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Box<Material>)> {
-        self.objects.iter()
-            .map(|o| o.shape.intersect(ray).map(|col| (col, o.material.clone())))
-            .filter(|o| o.is_some())
-            .map(|o| o.unwrap())
-            .min_by(|(c1, _), (c2, _)| c1.distance.partial_cmp(&c2.distance).unwrap_or(std::cmp::Ordering::Equal))
+        None
     }
 }
