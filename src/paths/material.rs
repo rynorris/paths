@@ -91,7 +91,7 @@ impl Mirror {
 }
 
 impl Material for Mirror {
-    fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
+    fn weight_pdf(&self, _vec_out: Vector3, _normal: Vector3) -> Colour {
         Colour::rgb(1.0, 1.0, 1.0)
     }
 

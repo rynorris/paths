@@ -8,7 +8,6 @@ use crate::paths::{Image, Ray};
 use crate::paths::colour::{Colour};
 use crate::paths::pixels::Estimator;
 use crate::paths::scene::Scene;
-use crate::paths::vector::Vector3;
 
 pub struct Renderer {
     pub scene: Scene,
@@ -39,8 +38,7 @@ impl Renderer {
 
             self.pool.execute(move|| {
                 for y in 0 .. camera.height {
-                    let ray = camera.get_ray_for_pixel(x, y);
-                    let weight = ray.direction.dot(Vector3::new(0.0, 0.0, 1.0));
+                    let (ray, weight) = camera.get_ray_for_pixel(x, y);
                     let colour = Renderer::trace_ray(&scene, ray, 0) * weight;
                     tx.send((x, y, colour)).expect("can send result back");
                 }
@@ -51,15 +49,6 @@ impl Renderer {
         rx.iter().take(num_pixels as usize).for_each(|(x, y, colour)| {
             self.estimator.update_pixel(x as usize, y as usize, colour);
         });
-    }
-
-    pub fn trace_batch(&mut self, num_rays: usize) {
-        for _ in 0 .. num_rays {
-            let (x, y) = self.estimator.choose_pixel();
-            let ray = self.scene.camera.get_ray_for_pixel(x as u32, y as u32);
-            let colour = Renderer::trace_ray(&self.scene, ray, 0);
-            self.estimator.update_pixel(x as usize, y as usize, colour);
-        }
     }
 
     pub fn reset(&mut self) {

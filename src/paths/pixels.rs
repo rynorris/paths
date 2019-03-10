@@ -1,8 +1,5 @@
 use std::ops;
 
-use rand;
-use rand::Rng;
-
 use crate::paths::Image;
 use crate::paths::colour::Colour;
 
@@ -46,13 +43,6 @@ impl Estimator {
     pub fn update_pixel(&mut self, x: usize, y: usize, colour: Colour) {
         let reflected_y = self.height - y - 1;
         self.means.update(x + (reflected_y * self.width), colour);
-    }
-
-    pub fn choose_pixel(&self) -> (usize, usize) {
-        let mut rng = rand::thread_rng();
-        let x = rng.gen_range(0, self.width);
-        let y = rng.gen_range(0, self.height);
-        (x, y)
     }
 
     pub fn render(&self) -> Image {

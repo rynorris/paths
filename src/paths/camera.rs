@@ -51,7 +51,7 @@ impl Camera {
         self.bundle_lens_point = Vector3::new(lens_x * aperture_radius, lens_y * aperture_radius, 0.0);
     }
 
-    pub fn get_ray_for_pixel(&mut self, x: u32, y: u32) -> Ray {
+    pub fn get_ray_for_pixel(&mut self, x: u32, y: u32) -> (Ray, f64) {
         // We'll compute the outbound ray first in lens-space where the centre of 
         // the lens is at the origin.
         // Then transform into world space.
@@ -80,7 +80,10 @@ impl Camera {
         let origin = self.rot.clone() * l + self.location;
         let direction = (self.rot.clone() * dir).normed();
 
-        Ray { origin, direction }
+        // Weight is d.n, but sinze n is just (0,0,1) we can shortcut.
+        let weight = direction.z;
+
+        (Ray { origin, direction }, weight)
     }
 
     pub fn set_orientation(&mut self, yaw: f64, pitch: f64, roll: f64) {
