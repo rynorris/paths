@@ -24,9 +24,41 @@ impl AABB {
     }
 }
 
+// Ray-box collision algorithm taken from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
 fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
-    // TODO: Implement.
-    None
+    let mut tmin = (aabb.min.x - ray.origin.x) / ray.direction.x;
+    let mut tmax = (aabb.max.x - ray.origin.x) / ray.direction.x;
+    if tmin > tmax { std::mem::swap(&mut tmin, &mut tmax); }
+
+    let mut tymin = (aabb.min.y - ray.origin.y) / ray.direction.y;
+    let mut tymax = (aabb.max.y - ray.origin.y) / ray.direction.y;
+    if tymin > tymax { std::mem::swap(&mut tymin, &mut tymax); }
+
+    if (tmin > tymax) || (tymin > tmax) {
+        return None;
+    }
+
+    if tymin > tmin {
+        tmin = tymin;
+    }
+
+    if tymax < tmax {
+        tmax = tymax;
+    }
+
+    let mut tzmin = (aabb.min.z - ray.origin.z) / ray.direction.z;
+    let mut tzmax = (aabb.max.z - ray.origin.z) / ray.direction.z;
+    if tzmin > tzmax { std::mem::swap(&mut tzmin, &mut tzmax); }
+
+    if (tmin > tzmax) || (tzmin > tmax) {
+        return None;
+    }
+
+    if tzmin > tmin {
+        tmin = tzmin;
+    }
+
+    Some(tmin)
 }
 
 pub trait BoundedVolume {
@@ -116,7 +148,6 @@ impl <T : BoundedVolume> BVH<T> {
         }
         None
     }
-
 }
 
 struct SearchNode<'a, T : BoundedVolume> {
@@ -129,9 +160,9 @@ impl <'a, T : BoundedVolume> Ord for SearchNode<'a, T> {
     // Reversed ordering so that our BinaryHeap becomes a min heap.
     fn cmp(&self, other: &SearchNode<T>) -> Ordering {
         if self.distance < other.distance {
-            Ordering::Less
-        } else if self.distance > other.distance {
             Ordering::Greater
+        } else if self.distance > other.distance {
+            Ordering::Less
         } else {
             Ordering::Equal
         }
@@ -247,6 +278,8 @@ fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> 
     // Lookup table from cluster index to index of "closest" cluster.
     let mut closest: Vec<usize> = Vec::with_capacity(clusters.len());
 
+    println!("Combining {:?} clusters until only {:?} remain", clusters.len(), n);
+
     for ix in 0 .. clusters.len() {
         closest.push(find_best_match(&clusters, ix));
     }
@@ -269,6 +302,7 @@ fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> 
         if right < left {
             std::mem::swap(&mut right, &mut left);
         }
+        println!("Clusters: {:?}, Closest: {:?}, Left: {:?}, Right: {:?}", clusters.len(), closest.len(), left, right);
         let lc = clusters.remove(right);
         let rc = clusters.remove(left);
         closest.remove(right);
@@ -276,12 +310,12 @@ fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> 
 
         let combined = Node::Cluster(ClusterNode::new(Box::new(lc), Box::new(rc)));
         clusters.push(combined);
-        closest.push(find_best_match(&clusters, clusters.len()));
+        closest.push(find_best_match(&clusters, clusters.len() - 1));
 
         // Recompute any invalidated closest pairs.
         for ix in 0 .. clusters.len() {
             if closest[ix] == left || closest[ix] == right {
-                closest[ix] - find_best_match(&clusters, ix);
+                closest[ix] = find_best_match(&clusters, ix);
             }
         }
     }

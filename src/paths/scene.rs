@@ -139,6 +139,6 @@ impl Scene {
     }
 
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Box<Material>)> {
-        None
+        self.bvh.find_intersection(ray).map(|(col, obj)| (col, obj.material.clone()))
     }
 }
