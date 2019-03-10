@@ -238,7 +238,14 @@ fn build_tree<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, depth: u16) 
         return combine_clusters(clusters.drain(..).map(|(n, _)| n).collect(), ccrf(DELTA));
     }
 
-    let (lhs, rhs) = make_partition(clusters, depth);
+    let (lhs, rhs) = if depth < 16 {
+        make_partition(clusters, depth)
+    } else {
+        let mid = clusters.len() / 2;
+        let rhs = clusters.split_off(mid);
+        (clusters, rhs)
+    };
+
     println!("Partitioned clusters using morton code bit {:?} into ({:?}, {:?})",
         depth, lhs.len(), rhs.len());
     let mut new_clusters = build_tree(lhs, depth + 1);
