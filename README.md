@@ -10,6 +10,7 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [x] Basic path tracing of spheres
 - [ ] Point lights
 - [x] Multithreading
+- [x] Collision acceleration (BVH)
 - [ ] Textures
 - [ ] Triangle meshes
 - [ ] Normal smoothing (of triangle meshes)
@@ -22,6 +23,9 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [ ] Bi-directional path tracing
 
 ### Examples
+
+[2019/03/11] 500 randomly generated spheres
+![image](https://user-images.githubusercontent.com/3620166/54086894-1b5e6200-4391-11e9-8400-041ce5de0579.png)
 
 [2019/03/07] Close up of green sphere with strong bokeh on the background
 ![image](https://user-images.githubusercontent.com/3620166/53971014-579a8400-413f-11e9-9bf7-3c5932cb6df1.png)
