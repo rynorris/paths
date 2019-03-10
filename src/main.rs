@@ -21,14 +21,16 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // Load scene.
-    /*
-    let scene_filename = args.get(1).expect("Path to scene file must be provided");
-    let scene_description: SceneDescription = {
-        let scene_file = File::open(scene_filename).expect("Could open scene file");
+    let scene_description: SceneDescription = args.get(1).map(|filename| {
+        println!("Loading scene from {}", filename);
+        let scene_file = File::open(filename).expect("Could open scene file");
         serde_yaml::from_reader(scene_file).expect("Could parse scene file")
-    };
-    */
-    let scene_description = stress::generate_stress_scene(500);
+    }).unwrap_or_else(|| {
+        println!("No scene file passed in, generating random stress scene...");
+        stress::generate_stress_scene(500)
+    });
+
+    println!("Contructing scene...");
     let scene = scene_description.to_scene();
     let width = scene_description.camera.image_width;
     let height = scene_description.camera.image_height;

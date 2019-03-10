@@ -239,6 +239,8 @@ fn build_tree<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, depth: u16) 
     }
 
     let (lhs, rhs) = make_partition(clusters, depth);
+    println!("Partitioned clusters using morton code bit {:?} into ({:?}, {:?})",
+        depth, lhs.len(), rhs.len());
     let mut new_clusters = build_tree(lhs, depth + 1);
     new_clusters.append(&mut build_tree(rhs, depth + 1));
     
@@ -290,7 +292,6 @@ fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> 
         let mut left: usize = 0;
         let mut right: usize = 0;
         for ix in 0 .. clusters.len() {
-            println!("ix: {:?}, closest: {:?}", ix, closest[ix]);
             let c = cost(&clusters[ix], &clusters[closest[ix]]);
             if c < best {
                 best = c;
@@ -303,7 +304,6 @@ fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> 
         if right < left {
             std::mem::swap(&mut right, &mut left);
         }
-        println!("Clusters: {:?}, Closest: {:?}, Left: {:?}, Right: {:?}", clusters.len(), closest.len(), left, right);
         let lc = clusters.remove(right);
         let rc = clusters.remove(left);
         closest.remove(right);
