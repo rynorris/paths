@@ -11,14 +11,14 @@ pub fn generate_stress_scene(num_spheres: usize) -> serde::SceneDescription {
     let camera = serde::CameraDescription {
         image_width: 720,
         image_height: 480,
-        location: serde::VectorDescription{ x: 1.0, y: 1.0, z: -50.0 },
+        location: serde::VectorDescription{ x: 0.0, y: -5.0, z: -13.0 },
         yaw: 0.0,
-        pitch: 0.1,
-        roll: 0.0,
+        pitch: 0.0,
+        roll: -0.3,
         sensor_width: 0.036,
         sensor_height: 0.024,
         focal_length: 0.05,
-        focus_distance: 50.0,
+        focus_distance: 10.0,
         aperture: 8.0,
     };
 

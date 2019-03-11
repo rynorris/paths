@@ -1,3 +1,4 @@
+#[macro_use] extern crate nom;
 #[macro_use] extern crate serde_derive;
 
 mod paths;
@@ -30,8 +31,33 @@ fn main() {
         stress::generate_stress_scene(500)
     });
 
+    let teapot: paths::obj::Object = {
+        let obj_file = File::open("./scenes/objects/teapot.obj").unwrap();
+        paths::obj::parse_obj(obj_file)
+    };
+
+    let mut triangles: Vec<paths::scene::Object> = teapot.resolve_triangles().iter()
+        .map(|t| paths::scene::Object{
+            shape: Box::new(*t),
+            material: Box::new(paths::material::Gloss::new(paths::colour::Colour::rgb(0.8, 0.3, 0.3), 2.0)),
+        }).collect();
+
+    triangles.push(paths::scene::Object{
+        shape: Box::new(paths::scene::Sphere{ 
+            center: paths::vector::Vector3::new(0.0, 1_000_000.0, 0.0),
+            radius: 1_000_000.0,
+        }),
+        material: Box::new(paths::material::Gloss::new(paths::colour::Colour::rgb(0.5, 0.5, 0.5), 2.0)),
+    });
+
+    let mut scene = scene_description.to_scene();
+    scene = paths::scene::Scene::new(
+        scene.camera,
+        triangles,
+        scene.skybox,
+    );
+
     println!("Contructing scene...");
-    let scene = scene_description.to_scene();
     let width = scene_description.camera.image_width;
     let height = scene_description.camera.image_height;
 

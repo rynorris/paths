@@ -3,6 +3,7 @@ pub mod camera;
 pub mod colour;
 pub mod material;
 pub mod matrix;
+#[macro_use] pub mod obj;
 pub mod pixels;
 pub mod renderer;
 pub mod sampling;
