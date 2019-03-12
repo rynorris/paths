@@ -27,10 +27,10 @@ impl Matrix3 {
     }
 
     pub fn rotation(yaw: f64, pitch: f64, roll: f64) -> Matrix3 {
-        let m_yaw = Matrix3::rotation_z(yaw);
-        let m_pitch = Matrix3::rotation_y(pitch);
-        let m_roll = Matrix3::rotation_x(roll);
-        m_yaw * m_pitch * m_roll
+        let m_pitch = Matrix3::rotation_x(pitch);
+        let m_yaw = Matrix3::rotation_y(yaw);
+        let m_roll = Matrix3::rotation_z(roll);
+        m_pitch * m_yaw * m_roll
     }
 
     pub fn rotation_x(angle: f64) -> Matrix3 {

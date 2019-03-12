@@ -114,7 +114,7 @@ impl CameraDescription {
             Box::new(CorrelatedMultiJitteredSampler::new(42, 16, 16)));
 
         camera.location = self.location.to_vector();
-        camera.set_orientation(self.orientation.pitch, self.orientation.yaw, self.orientation.roll);
+        camera.set_orientation(self.orientation.yaw, self.orientation.pitch, self.orientation.roll);
 
         camera.sensor_width = self.sensor_width;
         camera.sensor_height = self.sensor_height;

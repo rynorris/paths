@@ -96,33 +96,35 @@ fn main() {
         canvas.present();
 
         while let Some(e) = event_pump.poll_event() {
+            let mut should_reset = true;
             match e {
                 event::Event::KeyDown { keycode, .. } => match keycode {
                    Some(Keycode::Escape) => is_running = false,
-                   Some(Keycode::Return) => {
-                       println!("Resetting render");
-                       renderer.reset();
-                       num_samples = 0;
-                   },
-                   Some(Keycode::O) => yaw -= 0.1,
-                   Some(Keycode::U) => yaw += 0.1,
+                   Some(Keycode::Return) => (),
+                   Some(Keycode::O) => roll -= 0.1,
+                   Some(Keycode::U) => roll += 0.1,
                    Some(Keycode::I) => pitch -= 0.1,
                    Some(Keycode::K) => pitch += 0.1,
-                   Some(Keycode::J) => roll -= 0.1,
-                   Some(Keycode::L) => roll += 0.1,
+                   Some(Keycode::J) => yaw += 0.1,
+                   Some(Keycode::L) => yaw -= 0.1,
                    Some(Keycode::W) => Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.distance_from_lens += 0.00001,
                    Some(Keycode::Q) => Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.distance_from_lens -= 0.00001,
-                   _ => (),
+                   _ => should_reset = false,
                 },
-                _ => (),
+                _ => should_reset = false,
             }
 
-            Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.set_orientation(yaw, pitch, roll);
-            println!("Yaw: {:.1}, Pitch: {:.1}, Roll: {:.1}", yaw, pitch, roll);
-            println!("F: {:.1}, V: {:.1}, A: {:.1}",
-                     renderer.scene.camera.focal_length,
-                     renderer.scene.camera.distance_from_lens,
-                     renderer.scene.camera.aperture);
+            if should_reset {
+                println!("Resetting render");
+                Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.set_orientation(yaw, pitch, roll);
+                println!("Yaw: {:.1}, Pitch: {:.1}, Roll: {:.1}", yaw, pitch, roll);
+                println!("F: {:.1}, V: {:.1}, A: {:.1}",
+                         renderer.scene.camera.focal_length,
+                         renderer.scene.camera.distance_from_lens,
+                         renderer.scene.camera.aperture);
+                renderer.reset();
+                num_samples = 0;
+            }
         }
     }
 }

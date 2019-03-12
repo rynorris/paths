@@ -66,8 +66,8 @@ impl Model {
     }
 
     fn face_normal(v1: Vector3, v2: Vector3, v3: Vector3) -> Vector3 {
-        let side_1 = v3 - v1;
-        let side_2 = v2 - v1;
+        let side_1 = v2 - v1;
+        let side_2 = v3 - v1;
         return side_1.cross(side_2).normed();
     }
 }
@@ -101,7 +101,7 @@ named!(vertex(CompleteStr) -> Vector3,
         y: float      >>
            char!(' ') >>
         z: float      >>
-        (Vector3::new(x, -y, z))
+        (Vector3::new(x, y, z))
     )
 );
 
