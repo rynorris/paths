@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
+use std::time::Instant;
 
 use crate::paths::Ray;
 use crate::paths::vector::Vector3;
@@ -201,9 +202,14 @@ fn ccrf(x: usize) -> usize {
 }
 
 pub fn construct_bvh_aac<T : BoundedVolume>(mut objects: Vec<T>) -> BVH<T> {
+    let start_time = Instant::now();
+    println!("[{:.2?}] Constructing BVH from {:?} objects", start_time.elapsed(), objects.len());
+
     let mut nodes: Vec<Node<T>> = objects.drain(..).map(|o| Node::Leaf(LeafNode::new(o))).collect();
     let num_bits = (nodes.len() as f64).log(4.0).ceil() as u16;
     if num_bits > 16 { panic!("Too many objects to construct BVH"); }
+
+    println!("[{:.2?}] Performing morton code sort", start_time.elapsed());
 
     // Figure out how much we should scale by when computing morton codes.
     // Need to make sure that the largest bit of the largest component fits in num_bits.
@@ -223,11 +229,17 @@ pub fn construct_bvh_aac<T : BoundedVolume>(mut objects: Vec<T>) -> BVH<T> {
     // Sort by morton code.
     nodes_with_mc.sort_unstable_by_key(|(_, mc)| *mc);
 
+    println!("[{:.2?}] Recursively constructing hierarchy", start_time.elapsed());
+
     let clusters: Vec<Node<T>> = build_tree(nodes_with_mc, num_bits, 0);
+
+    println!("[{:.2?}] Combining final clusters", start_time.elapsed());
 
     let mut final_clusters: Vec<Node<T>> = combine_clusters(clusters, 1);
 
     let root = final_clusters.pop().expect("Must have at least one cluster");
+
+    println!("[{:.2?}] Finished constructing BVH", start_time.elapsed());
 
     BVH { root }
 }
@@ -246,8 +258,6 @@ fn build_tree<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, max_depth: u
         (clusters, rhs)
     };
 
-    println!("Partitioned clusters using morton code bit {:?} into ({:?}, {:?})",
-        depth, lhs.len(), rhs.len());
     let mut new_clusters = build_tree(lhs, max_depth, depth + 1);
     new_clusters.append(&mut build_tree(rhs, max_depth, depth + 1));
     
@@ -286,8 +296,6 @@ fn make_partition<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, depth: u
 fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> Vec<Node<T>> {
     // Lookup table from cluster index to index of "closest" cluster.
     let mut closest: Vec<usize> = Vec::with_capacity(clusters.len());
-
-    println!("Combining {:?} clusters until only {:?} remain", clusters.len(), n);
 
     for ix in 0 .. clusters.len() {
         closest.push(find_best_match(&clusters, ix));
