@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::paths::camera::Camera;
 use crate::paths::colour::Colour;
+use crate::paths::matrix::Matrix3;
 use crate::paths::sampling::CorrelatedMultiJitteredSampler;
 use crate::paths::vector::Vector3;
 use crate::paths::material;
@@ -64,8 +65,9 @@ impl SceneDescription {
                 })],
                 ShapeDescription::Mesh(ref shp) => {
                     let translation = shp.center.to_vector();
+                    let rotation = Matrix3::rotation(shp.pitch, shp.yaw, shp.roll);
                     let triangles: Vec<Box<scene::Shape>> = models.get(&shp.model).unwrap().iter()
-                        .map(|t| t.translate(translation))
+                        .map(|t| t.transform(translation, rotation.clone()))
                         .map(|t| Box::new(t) as Box<scene::Shape>)
                         .collect();
                     triangles
@@ -144,6 +146,9 @@ pub struct SphereDescription {
 pub struct MeshDescription {
     pub model: String,
     pub center: VectorDescription,
+    pub pitch: f64,
+    pub yaw: f64,
+    pub roll: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

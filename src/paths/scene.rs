@@ -2,6 +2,7 @@ use crate::paths::bvh::{construct_bvh_aac, AABB, BoundedVolume, BVH, Collision};
 use crate::paths::camera::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::material::Material;
+use crate::paths::matrix::Matrix3;
 use crate::paths::vector::Vector3;
 use crate::paths::Ray;
 
@@ -90,15 +91,19 @@ pub struct Triangle {
 }
 
 impl Triangle {
-    pub fn translate(&self, translation: Vector3) -> Triangle {
+    pub fn transform(&self, translation: Vector3, rotation: Matrix3) -> Triangle {
         Triangle {
             vertices: [
-                self.vertices[0] + translation,
-                self.vertices[1] + translation,
-                self.vertices[2] + translation,
+                rotation.clone() * self.vertices[0] + translation,
+                rotation.clone() * self.vertices[1] + translation,
+                rotation.clone() * self.vertices[2] + translation,
             ],
-            surface_normal: self.surface_normal,
-            vertex_normals: self.vertex_normals,
+            surface_normal: rotation.clone() * self.surface_normal,
+            vertex_normals: [
+                rotation.clone() * self.vertex_normals[0],
+                rotation.clone() * self.vertex_normals[1],
+                rotation.clone() * self.vertex_normals[2],
+            ],
         }
     }
 }
