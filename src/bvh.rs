@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::time::Instant;
 
-use crate::paths::Ray;
-use crate::paths::vector::Vector3;
+use crate::geom::Ray;
+use crate::vector::Vector3;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Collision {

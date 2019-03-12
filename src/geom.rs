@@ -1,24 +1,29 @@
-use crate::paths::bvh::{construct_bvh_aac, AABB, BoundedVolume, BVH, Collision};
-use crate::paths::camera::Camera;
-use crate::paths::colour::Colour;
-use crate::paths::material::Material;
-use crate::paths::matrix::Matrix3;
-use crate::paths::vector::Vector3;
-use crate::paths::Ray;
+use std::f64::consts::PI;
 
-#[derive(Clone)]
-pub struct Object {
-    pub shape: Box<dyn Shape>,
-    pub material: Box<dyn Material>,
+use rand;
+use rand::Rng;
+
+use crate::bvh::{AABB, BoundedVolume, Collision};
+use crate::matrix::Matrix3;
+use crate::vector::Vector3;
+
+#[derive(Clone, Copy, Debug)]
+pub struct Ray {
+    pub origin: Vector3,
+    pub direction: Vector3,
 }
 
-impl BoundedVolume for Object {
-    fn aabb(&self) -> AABB {
-        self.shape.aabb()
-    }
-
-    fn intersect(&self, ray: Ray) -> Option<Collision> {
-        self.shape.intersect(ray)
+impl Ray {
+    pub fn random_in_hemisphere(&self) -> Ray {
+        let mut rng = rand::thread_rng();
+        let yaw = (rng.gen::<f64>() - 0.5) * PI;
+        let pitch = (rng.gen::<f64>() - 0.5) * PI;
+        let roll = (rng.gen::<f64>() - 0.5) * PI;
+        let rot = Matrix3::rotation(yaw, pitch, roll);
+        Ray {
+            origin: self.origin,
+            direction: rot * self.direction,
+        }
     }
 }
 
@@ -164,66 +169,5 @@ impl BoundedVolume for Triangle {
         let max_z = v1.z.max(v2.z.max(v3.z));
 
         AABB::new(Vector3::new(min_x, min_y, min_z), Vector3::new(max_x, max_y, max_z))
-    }
-}
-
-pub trait Skybox : SkyboxClone + Send + Sync {
-    fn ambient_light(&self, direction: Vector3) -> Colour;
-}
-
-pub trait SkyboxClone {
-    fn clone_box(&self) -> Box<Skybox>;
-}
-
-impl <T> SkyboxClone for T where T: 'static + Skybox + Clone {
-    fn clone_box(&self) -> Box<Skybox> {
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<Skybox> {
-    fn clone(&self) -> Box<Skybox> {
-        self.clone_box()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct FlatSky {
-    pub colour: Colour,
-}
-
-impl Skybox for FlatSky {
-    fn ambient_light(&self, _direction: Vector3) -> Colour {
-        self.colour
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct GradientSky {
-    pub overhead_colour: Colour,
-    pub horizon_colour: Colour,
-}
-
-impl Skybox for GradientSky {
-    fn ambient_light(&self, direction: Vector3) -> Colour {
-        let cos_theta = direction.dot(Vector3::new(0.0, 1.0, 0.0));
-        return self.overhead_colour * cos_theta + self.horizon_colour * (1.0 - cos_theta);
-    }
-}
-
-pub struct Scene {
-    pub camera: Camera,
-    pub skybox: Box<Skybox>,
-    bvh: BVH<Object>,
-}
-
-impl Scene {
-    pub fn new(camera: Camera, objects: Vec<Object>, skybox: Box<Skybox>) -> Scene {
-        let bvh = construct_bvh_aac(objects);
-        Scene { camera, skybox, bvh }
-    }
-
-    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Box<Material>)> {
-        self.bvh.find_intersection(ray).map(|(col, obj)| (col, obj.material.clone()))
     }
 }

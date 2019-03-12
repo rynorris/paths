@@ -3,8 +3,8 @@ use std::f64::consts::PI;
 use rand;
 use rand::Rng;
 
-use crate::paths::colour::Colour;
-use crate::paths::vector::Vector3;
+use crate::colour::Colour;
+use crate::vector::Vector3;
 
 pub trait Material : MaterialClone + Send + Sync {
     fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour;

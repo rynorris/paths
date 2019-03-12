@@ -5,8 +5,8 @@ use std::str::FromStr;
 use nom::{digit, double};
 use nom::types::CompleteStr;
 
-use crate::paths::scene::Triangle;
-use crate::paths::vector::Vector3;
+use crate::geom::Triangle;
+use crate::vector::Vector3;
 
 pub struct Model {
     vertices: Vec<Vector3>,

@@ -1,18 +1,30 @@
 #[macro_use] extern crate nom;
 #[macro_use] extern crate serde_derive;
 
-mod paths;
-mod stress;
+pub mod bvh;
+pub mod camera;
+pub mod colour;
+pub mod geom;
+pub mod material;
+pub mod matrix;
+#[macro_use] pub mod obj;
+pub mod pixels;
+pub mod renderer;
+pub mod sampling;
+pub mod scene;
+pub mod serde;
+pub mod stress;
+pub mod vector;
 
 use std::env;
 use std::fs::File;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::paths::renderer::Renderer;
-use crate::paths::serde::SceneDescription;
+use crate::renderer::Renderer;
+use crate::serde::SceneDescription;
 
-use sdl2::{event, pixels};
+use sdl2;
 use sdl2::keyboard::Keycode;
 use serde_yaml;
 
@@ -56,7 +68,7 @@ fn main() {
         .unwrap();
 
     let texture_creator = canvas.texture_creator();
-    let mut output_texture = match texture_creator.create_texture_static(Some(pixels::PixelFormatEnum::RGB24), width, height) {
+    let mut output_texture = match texture_creator.create_texture_static(Some(sdl2::pixels::PixelFormatEnum::RGB24), width, height) {
         Err(cause) => panic!("Failed to create texture: {}", cause),
         Ok(t) => t,
     };
@@ -98,7 +110,7 @@ fn main() {
         while let Some(e) = event_pump.poll_event() {
             let mut should_reset = true;
             match e {
-                event::Event::KeyDown { keycode, .. } => match keycode {
+                sdl2::event::Event::KeyDown { keycode, .. } => match keycode {
                    Some(Keycode::Escape) => is_running = false,
                    Some(Keycode::Return) => (),
                    Some(Keycode::O) => roll -= 0.1,

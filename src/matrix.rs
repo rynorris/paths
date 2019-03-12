@@ -1,6 +1,6 @@
 use std::ops;
 
-use crate::paths::vector::Vector3;
+use crate::vector::Vector3;
 
 // 3x3 Matrix
 #[derive(Clone, Debug, PartialEq)]

@@ -1,7 +1,14 @@
-use crate::paths::Ray;
-use crate::paths::matrix::Matrix3;
-use crate::paths::sampling::Sampler;
-use crate::paths::vector::Vector3;
+use crate::colour::Colour;
+use crate::geom::Ray;
+use crate::matrix::Matrix3;
+use crate::sampling::Sampler;
+use crate::vector::Vector3;
+
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Vec<Colour>,
+}
 
 #[derive(Clone)]
 pub struct Camera {
