@@ -1,7 +1,7 @@
-use crate::bvh::{construct_bvh_aac, AABB, BoundedVolume, BVH, Collision};
+use crate::bvh::{construct_bvh_aac, BVH};
 use crate::camera::Camera;
 use crate::colour::Colour;
-use crate::geom::{Shape, Ray};
+use crate::geom::{AABB, BoundedVolume, Collision, Shape, Ray};
 use crate::material::Material;
 use crate::vector::Vector3;
 

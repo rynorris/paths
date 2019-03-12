@@ -3,7 +3,6 @@ use std::f64::consts::PI;
 use rand;
 use rand::Rng;
 
-use crate::bvh::{AABB, BoundedVolume, Collision};
 use crate::matrix::Matrix3;
 use crate::vector::Vector3;
 
@@ -25,6 +24,31 @@ impl Ray {
             direction: rot * self.direction,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Collision {
+    pub distance: f64,
+    pub location: Vector3,
+    pub normal: Vector3,
+}
+
+pub struct AABB {
+    pub min: Vector3,
+    pub max: Vector3,
+    pub center: Vector3,
+}
+
+impl AABB {
+    pub fn new(min: Vector3, max: Vector3) -> AABB {
+        let center = (min + max) * 0.5;
+        AABB { min, max, center }
+    }
+}
+
+pub trait BoundedVolume {
+    fn aabb(&self) -> AABB;
+    fn intersect(&self, ray: Ray) -> Option<Collision>;
 }
 
 pub trait Shape : BoundedVolume + ShapeClone + Send + Sync {}
