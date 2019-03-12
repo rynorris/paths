@@ -67,7 +67,9 @@ impl Camera {
         let x_scale = self.sensor_width / (self.width as f64);
         let y_scale = self.sensor_height / (self.height as f64);
         let image_x = (x as f64) - (self.width as f64) / 2.0 + x_offset;
-        let image_y = (y as f64) - (self.height as f64) / 2.0 + y_offset;
+        // Flip y since image pixel coordinates start in the top-left but we want y pointing
+        // upwards in 3d space.
+        let image_y = (self.height as f64) / 2.0 - (y as f64) - y_offset;
         let k = Vector3::new(image_x * x_scale, image_y * y_scale, -self.distance_from_lens);
 
         // l = point on lens

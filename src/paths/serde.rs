@@ -58,6 +58,7 @@ impl SceneDescription {
         let mut models: HashMap<String, Vec<scene::Triangle>> = HashMap::with_capacity(self.models.len());
 
         self.models.iter().for_each(|(name, desc)| {
+            println!("Loading model '{}' from '{}'", name, desc.file);
             let model = obj::load_obj_file(&desc.file);
             let triangles: Vec<scene::Triangle> = model.resolve_triangles().iter()
                 .map(|v| *v)
@@ -73,6 +74,7 @@ impl SceneDescription {
                     radius: shp.radius,
                 })],
                 ShapeDescription::Mesh(ref shp) => {
+                    println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
                     let triangles: Vec<Box<scene::Shape>> = models.get(&shp.model).unwrap().iter()
@@ -114,7 +116,7 @@ impl CameraDescription {
             Box::new(CorrelatedMultiJitteredSampler::new(42, 16, 16)));
 
         camera.location = self.location.to_vector();
-        camera.set_orientation(self.orientation.pitch, self.orientation.yaw, self.orientation.roll);
+        camera.set_orientation(self.orientation.yaw, self.orientation.pitch, self.orientation.roll);
 
         camera.sensor_width = self.sensor_width;
         camera.sensor_height = self.sensor_height;
