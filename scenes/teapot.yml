@@ -24,6 +24,7 @@ objects:
       model: teapot
       translation: { x: -0.0, y: 0.0, z: 0.0 }
       rotation: { pitch: 0.0, yaw: 0.4, roll: 0.0 }
+      scale: 0.5
     material:
       type: Gloss
       albedo: { r: 0.8, g: 0.3, b: 0.3 }

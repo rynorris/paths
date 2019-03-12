@@ -91,12 +91,12 @@ pub struct Triangle {
 }
 
 impl Triangle {
-    pub fn transform(&self, translation: Vector3, rotation: Matrix3) -> Triangle {
+    pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> Triangle {
         Triangle {
             vertices: [
-                rotation.clone() * self.vertices[0] + translation,
-                rotation.clone() * self.vertices[1] + translation,
-                rotation.clone() * self.vertices[2] + translation,
+                rotation.clone() * self.vertices[0] * scale + translation,
+                rotation.clone() * self.vertices[1] * scale + translation,
+                rotation.clone() * self.vertices[2] * scale + translation,
             ],
             surface_normal: rotation.clone() * self.surface_normal,
             vertex_normals: [

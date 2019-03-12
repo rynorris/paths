@@ -76,7 +76,7 @@ impl SceneDescription {
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
                     let triangles: Vec<Box<scene::Shape>> = models.get(&shp.model).unwrap().iter()
-                        .map(|t| t.transform(translation, rotation.clone()))
+                        .map(|t| t.transform(translation, rotation.clone(), shp.scale))
                         .map(|t| Box::new(t) as Box<scene::Shape>)
                         .collect();
                     triangles
@@ -154,6 +154,7 @@ pub struct MeshDescription {
     pub model: String,
     pub translation: VectorDescription,
     pub rotation: RotationDescription,
+    pub scale: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
