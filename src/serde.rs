@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
-use crate::paths::camera::Camera;
-use crate::paths::colour::Colour;
-use crate::paths::matrix::Matrix3;
-use crate::paths::sampling::CorrelatedMultiJitteredSampler;
-use crate::paths::vector::Vector3;
-use crate::paths::material;
-use crate::paths::obj;
-use crate::paths::scene;
+use crate::camera::Camera;
+use crate::colour::Colour;
+use crate::matrix::Matrix3;
+use crate::sampling::CorrelatedMultiJitteredSampler;
+use crate::vector::Vector3;
+use crate::geom;
+use crate::material;
+use crate::obj;
+use crate::scene;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct VectorDescription {
@@ -55,12 +56,12 @@ pub struct SceneDescription {
 impl SceneDescription {
     pub fn to_scene(&self) -> scene::Scene {
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
-        let mut models: HashMap<String, Vec<scene::Triangle>> = HashMap::with_capacity(self.models.len());
+        let mut models: HashMap<String, Vec<geom::Triangle>> = HashMap::with_capacity(self.models.len());
 
         self.models.iter().for_each(|(name, desc)| {
             println!("Loading model '{}' from '{}'", name, desc.file);
             let model = obj::load_obj_file(&desc.file);
-            let triangles: Vec<scene::Triangle> = model.resolve_triangles().iter()
+            let triangles: Vec<geom::Triangle> = model.resolve_triangles().iter()
                 .map(|v| *v)
                 .collect();
             models.insert(name.clone(), triangles);
@@ -68,8 +69,8 @@ impl SceneDescription {
 
         self.objects.iter().for_each(|o| {
             let material = o.material.to_material();
-            let shapes: Vec<Box<scene::Shape>> = match o.shape {
-                ShapeDescription::Sphere(ref shp) => vec![Box::new(scene::Sphere{
+            let shapes: Vec<Box<geom::Shape>> = match o.shape {
+                ShapeDescription::Sphere(ref shp) => vec![Box::new(geom::Sphere{
                     center: shp.center.to_vector(),
                     radius: shp.radius,
                 })],
@@ -77,9 +78,9 @@ impl SceneDescription {
                     println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
-                    let triangles: Vec<Box<scene::Shape>> = models.get(&shp.model).unwrap().iter()
+                    let triangles: Vec<Box<geom::Shape>> = models.get(&shp.model).unwrap().iter()
                         .map(|t| t.transform(translation, rotation.clone(), shp.scale))
-                        .map(|t| Box::new(t) as Box<scene::Shape>)
+                        .map(|t| Box::new(t) as Box<geom::Shape>)
                         .collect();
                     triangles
                 },

@@ -5,10 +5,11 @@ use rand;
 use rand::Rng;
 use threadpool::ThreadPool;
 
-use crate::paths::{Image, Ray};
-use crate::paths::colour::{Colour};
-use crate::paths::pixels::Estimator;
-use crate::paths::scene::Scene;
+use crate::camera::Image;
+use crate::colour::Colour;
+use crate::geom::Ray;
+use crate::pixels::Estimator;
+use crate::scene::Scene;
 
 pub struct Renderer {
     pub scene: Arc<Scene>,

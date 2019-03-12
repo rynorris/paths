@@ -2,28 +2,9 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::time::Instant;
 
-use crate::paths::Ray;
-use crate::paths::vector::Vector3;
+use crate::geom::{AABB, BoundedVolume, Collision, Ray};
+use crate::vector::Vector3;
 
-#[derive(Clone, Copy, Debug)]
-pub struct Collision {
-    pub distance: f64,
-    pub location: Vector3,
-    pub normal: Vector3,
-}
-
-pub struct AABB {
-    pub min: Vector3,
-    pub max: Vector3,
-    pub center: Vector3,
-}
-
-impl AABB {
-    pub fn new(min: Vector3, max: Vector3) -> AABB {
-        let center = (min + max) * 0.5;
-        AABB { min, max, center }
-    }
-}
 
 // Ray-box collision algorithm taken from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
 fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
@@ -60,11 +41,6 @@ fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
     }
 
     Some(tmin)
-}
-
-pub trait BoundedVolume {
-    fn aabb(&self) -> AABB;
-    fn intersect(&self, ray: Ray) -> Option<Collision>;
 }
 
 enum Node<T> {

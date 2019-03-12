@@ -1,7 +1,7 @@
 use std::ops;
 
-use crate::paths::Image;
-use crate::paths::colour::Colour;
+use crate::camera::Image;
+use crate::colour::Colour;
 
 struct MeanVec<T> {
     sums: Vec<T>,

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use rand;
 use rand::Rng;
 
-use crate::paths::serde;
+use crate::serde;
 
 pub fn generate_stress_scene(num_spheres: usize) -> serde::SceneDescription {
     let models = HashMap::new();
