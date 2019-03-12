@@ -86,6 +86,7 @@ impl BoundedVolume for Sphere {
 pub struct Triangle {
     pub vertices: [Vector3; 3],
     pub surface_normal: Vector3,
+    pub vertex_normals: [Vector3; 3],
 }
 
 impl BoundedVolume for Triangle {
@@ -94,6 +95,9 @@ impl BoundedVolume for Triangle {
         let b = self.vertices[1];
         let c = self.vertices[2];
         let n = self.surface_normal;
+        let an = self.vertex_normals[0];
+        let bn = self.vertex_normals[1];
+        let cn = self.vertex_normals[2];
 
         // d = constant term of triangle plane
         let d = n.dot(a);
@@ -116,11 +120,13 @@ impl BoundedVolume for Triangle {
         let bx = area_pbc / area_abc;
         let by = area_pca / area_abc;
         let bz = 1.0 - bx - by;
+
+        let smooth_normal = an * bx + bn * by + cn * bz;
         
         if bx < 0.0 || by < 0.0 || bz < 0.0 {
             None
         } else {
-            Some(Collision{ distance: t, location: p, normal: n })
+            Some(Collision{ distance: t, location: p, normal: smooth_normal })
         }
     }
 

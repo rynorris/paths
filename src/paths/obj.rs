@@ -25,7 +25,25 @@ impl Model {
             })
             .collect();
 
-        // TODO: compute vertex normals.
+        let mut vertex_normal_sums: Vec<Vector3> = vec![Vector3::new(0.0, 0.0, 0.0); self.vertices.len()];
+        let mut vertex_normal_counts: Vec<usize> = vec![0; self.vertices.len()];
+
+        self.faces.iter()
+            .enumerate()
+            .for_each(|(ix, &(a, b, c))| {
+                let n = face_normals[ix];
+                vertex_normal_sums[a] += n;
+                vertex_normal_sums[b] += n;
+                vertex_normal_sums[c] += n;
+                vertex_normal_counts[a] += 1;
+                vertex_normal_counts[b] += 1;
+                vertex_normal_counts[c] += 1;
+            });
+
+        let vertex_normals: Vec<Vector3> = vertex_normal_sums.iter()
+            .enumerate()
+            .map(|(ix, &v)| v / (vertex_normal_counts[ix]) as f64)
+            .collect();
 
         self.faces.iter()
             .enumerate()
@@ -34,9 +52,15 @@ impl Model {
                 let v2 = self.vertices[b];
                 let v3 = self.vertices[c];
 
+                let vn1 = vertex_normals[a];
+                let vn2 = vertex_normals[b];
+                let vn3 = vertex_normals[c];
+
                 let vertices = [v1, v2, v3];
                 let surface_normal = face_normals[ix];
-                Triangle { vertices, surface_normal }
+                let vertex_normals = [vn1, vn2, vn3];
+
+                Triangle { vertices, surface_normal, vertex_normals }
             })
             .collect()
     }
