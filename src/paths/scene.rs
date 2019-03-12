@@ -89,6 +89,20 @@ pub struct Triangle {
     pub vertex_normals: [Vector3; 3],
 }
 
+impl Triangle {
+    pub fn translate(&self, translation: Vector3) -> Triangle {
+        Triangle {
+            vertices: [
+                self.vertices[0] + translation,
+                self.vertices[1] + translation,
+                self.vertices[2] + translation,
+            ],
+            surface_normal: self.surface_normal,
+            vertex_normals: self.vertex_normals,
+        }
+    }
+}
+
 impl BoundedVolume for Triangle {
     fn intersect(&self, ray: Ray) -> Option<Collision> {
         let a = self.vertices[0];

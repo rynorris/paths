@@ -45,12 +45,12 @@ pub struct SceneDescription {
 impl SceneDescription {
     pub fn to_scene(&self) -> scene::Scene {
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
-        let mut models: HashMap<String, Vec<Box<scene::Shape>>> = HashMap::with_capacity(self.models.len());
+        let mut models: HashMap<String, Vec<scene::Triangle>> = HashMap::with_capacity(self.models.len());
 
         self.models.iter().for_each(|(name, desc)| {
             let model = obj::load_obj_file(&desc.file);
-            let triangles: Vec<Box<scene::Shape>> = model.resolve_triangles().iter()
-                .map(|t| Box::new(*t) as Box<scene::Shape>)
+            let triangles: Vec<scene::Triangle> = model.resolve_triangles().iter()
+                .map(|v| *v)
                 .collect();
             models.insert(name.clone(), triangles);
         });
@@ -63,7 +63,12 @@ impl SceneDescription {
                     radius: shp.radius,
                 })],
                 ShapeDescription::Mesh(ref shp) => {
-                    models.get(&shp.model).unwrap().clone()
+                    let translation = shp.center.to_vector();
+                    let triangles: Vec<Box<scene::Shape>> = models.get(&shp.model).unwrap().iter()
+                        .map(|t| t.translate(translation))
+                        .map(|t| Box::new(t) as Box<scene::Shape>)
+                        .collect();
+                    triangles
                 },
             };
 
