@@ -1,3 +1,4 @@
+#[macro_use] extern crate nom;
 #[macro_use] extern crate serde_derive;
 
 mod paths;
@@ -30,8 +31,9 @@ fn main() {
         stress::generate_stress_scene(500)
     });
 
-    println!("Contructing scene...");
     let scene = scene_description.to_scene();
+
+    println!("Contructing scene...");
     let width = scene_description.camera.image_width;
     let height = scene_description.camera.image_height;
 
@@ -59,9 +61,9 @@ fn main() {
         Ok(t) => t,
     };
 
-    let mut yaw: f64 = scene_description.camera.yaw;
-    let mut pitch: f64 = scene_description.camera.pitch;
-    let mut roll: f64 = scene_description.camera.roll;
+    let mut yaw: f64 = scene_description.camera.orientation.yaw;
+    let mut pitch: f64 = scene_description.camera.orientation.pitch;
+    let mut roll: f64 = scene_description.camera.orientation.roll;
 
     let mut renderer = Renderer::new(Arc::new(scene), 4);
 
