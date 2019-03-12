@@ -1,3 +1,4 @@
+use std::fs::File;
 use std::io::{Read};
 use std::str::FromStr;
 
@@ -7,12 +8,12 @@ use nom::types::CompleteStr;
 use crate::paths::scene::Triangle;
 use crate::paths::vector::Vector3;
 
-pub struct Object {
+pub struct Model {
     vertices: Vec<Vector3>,
     faces: Vec<(usize, usize, usize)>,
 }
 
-impl Object {
+impl Model {
     pub fn resolve_triangles(&self) -> Vec<Triangle> {
         // Firstly, compute the face normals.
         let face_normals: Vec<Vector3> = self.faces.iter()
@@ -20,7 +21,7 @@ impl Object {
                 let v1 = self.vertices[a];
                 let v2 = self.vertices[b];
                 let v3 = self.vertices[c];
-                Object::face_normal(v1, v2, v3)
+                Model::face_normal(v1, v2, v3)
             })
             .collect();
 
@@ -47,9 +48,14 @@ impl Object {
     }
 }
 
+pub fn load_obj_file(filename: &str) -> Model {
+    let f = File::open(filename).unwrap();
+    parse_obj(f)
+}
+
 // This is a MASSIVE over-simplification of the .obj file format and won't work
 // for any but the simplest possible files.
-pub fn parse_obj<R>(mut reader: R) -> Object where R : Read {
+pub fn parse_obj<R>(mut reader: R) -> Model where R : Read {
     let mut contents = Vec::new();
     reader.read_to_end(&mut contents).unwrap();
 
@@ -92,12 +98,12 @@ named!(vertices(CompleteStr) -> Vec<Vector3>, many1!(terminated!(vertex, opt!(ch
 
 named!(faces(CompleteStr) -> Vec<(usize, usize, usize)>, many1!(terminated!(face, opt!(char!('\n')))));
 
-named!(object(CompleteStr) -> Object,
+named!(object(CompleteStr) -> Model,
     do_parse!(
         vertices: vertices            >>
                   many0!(char!('\n')) >>
         faces:    faces               >>
-        (Object{ vertices, faces })
+        (Model{ vertices, faces })
     )
 );
 
@@ -156,7 +162,7 @@ mod test {
         assert_eq!(teapot.faces[6319], (3001, 3004, 3022));
     }
 
-    fn parse_obj_file(name: &str) -> Object {
+    fn parse_obj_file(name: &str) -> Model {
         let mut f = File::open(test_resource_path(name)).unwrap();
         let mut contents = Vec::new();
         f.read_to_end(&mut contents).unwrap();

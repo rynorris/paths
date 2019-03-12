@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use rand;
 use rand::Rng;
 
 use crate::paths::serde;
 
 pub fn generate_stress_scene(num_spheres: usize) -> serde::SceneDescription {
+    let models = HashMap::new();
+
     let objects = (0 .. num_spheres)
         .map(|_| serde::ObjectDescription{ shape: random_sphere(), material: random_material() })
         .collect();
@@ -26,7 +29,7 @@ pub fn generate_stress_scene(num_spheres: usize) -> serde::SceneDescription {
         colour: serde::ColourDescription{ r: 0.8, g: 0.8, b: 0.8 },
     });
 
-    serde::SceneDescription{ camera, skybox, objects }
+    serde::SceneDescription{ camera, models, skybox, objects }
 }
 
 fn random_sphere() -> serde::ShapeDescription {

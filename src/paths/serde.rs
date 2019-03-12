@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
 use crate::paths::camera::Camera;
 use crate::paths::colour::Colour;
 use crate::paths::sampling::CorrelatedMultiJitteredSampler;
 use crate::paths::vector::Vector3;
 use crate::paths::material;
+use crate::paths::obj;
 use crate::paths::scene;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -34,6 +37,7 @@ impl ColourDescription {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SceneDescription {
     pub camera: CameraDescription,
+    pub models: HashMap<String, ModelDescription>,
     pub objects: Vec<ObjectDescription>,
     pub skybox: SkyboxDescription,
 }
@@ -41,7 +45,32 @@ pub struct SceneDescription {
 impl SceneDescription {
     pub fn to_scene(&self) -> scene::Scene {
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
-        self.objects.iter().for_each(|o| objects.push(o.to_object()));
+        let mut models: HashMap<String, Vec<Box<scene::Shape>>> = HashMap::with_capacity(self.models.len());
+
+        self.models.iter().for_each(|(name, desc)| {
+            let model = obj::load_obj_file(&desc.file);
+            let triangles: Vec<Box<scene::Shape>> = model.resolve_triangles().iter()
+                .map(|t| Box::new(*t) as Box<scene::Shape>)
+                .collect();
+            models.insert(name.clone(), triangles);
+        });
+
+        self.objects.iter().for_each(|o| {
+            let material = o.material.to_material();
+            let shapes: Vec<Box<scene::Shape>> = match o.shape {
+                ShapeDescription::Sphere(ref shp) => vec![Box::new(scene::Sphere{
+                    center: shp.center.to_vector(),
+                    radius: shp.radius,
+                })],
+                ShapeDescription::Mesh(ref shp) => {
+                    models.get(&shp.model).unwrap().clone()
+                },
+            };
+
+            shapes.iter().for_each(|shape| {
+                objects.push(scene::Object{ material: material.clone(), shape: shape.clone() });
+            });
+        });
         scene::Scene::new(self.camera.to_camera(), objects, self.skybox.to_skybox())
     }
 }
@@ -83,38 +112,33 @@ impl CameraDescription {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ModelDescription {
+    pub file: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ObjectDescription {
     pub shape: ShapeDescription,
     pub material: MaterialDescription,
-}
-
-impl ObjectDescription {
-    pub fn to_object(&self) -> scene::Object {
-        scene::Object {
-            material: self.material.to_material(),
-            shape: self.shape.to_shape(),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ShapeDescription {
     Sphere(SphereDescription),
-}
-
-impl ShapeDescription {
-    pub fn to_shape(&self) -> Box<scene::Shape> {
-        match self {
-            ShapeDescription::Sphere(shp) => Box::new(scene::Sphere{ center: shp.center.to_vector(), radius: shp.radius }),
-        }
-    }
+    Mesh(MeshDescription),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SphereDescription {
     pub center: VectorDescription,
     pub radius: f64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MeshDescription {
+    pub model: String,
+    pub center: VectorDescription,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
