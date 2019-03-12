@@ -36,11 +36,20 @@ impl ColourDescription {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RotationDescription {
+    pub pitch: f64,
+    pub yaw: f64,
+    pub roll: f64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SceneDescription {
     pub camera: CameraDescription,
-    pub models: HashMap<String, ModelDescription>,
     pub objects: Vec<ObjectDescription>,
     pub skybox: SkyboxDescription,
+
+    #[serde(default)]
+    pub models: HashMap<String, ModelDescription>,
 }
 
 impl SceneDescription {
@@ -64,8 +73,8 @@ impl SceneDescription {
                     radius: shp.radius,
                 })],
                 ShapeDescription::Mesh(ref shp) => {
-                    let translation = shp.center.to_vector();
-                    let rotation = Matrix3::rotation(shp.pitch, shp.yaw, shp.roll);
+                    let translation = shp.translation.to_vector();
+                    let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
                     let triangles: Vec<Box<scene::Shape>> = models.get(&shp.model).unwrap().iter()
                         .map(|t| t.transform(translation, rotation.clone()))
                         .map(|t| Box::new(t) as Box<scene::Shape>)
@@ -88,9 +97,7 @@ pub struct CameraDescription {
     pub image_height: u32,
 
     pub location: VectorDescription,
-    pub pitch: f64,
-    pub yaw: f64,
-    pub roll: f64,
+    pub orientation: RotationDescription,
 
     pub sensor_width: f64,
     pub sensor_height: f64,
@@ -107,7 +114,7 @@ impl CameraDescription {
             Box::new(CorrelatedMultiJitteredSampler::new(42, 16, 16)));
 
         camera.location = self.location.to_vector();
-        camera.set_orientation(self.pitch, self.yaw, self.roll);
+        camera.set_orientation(self.orientation.pitch, self.orientation.yaw, self.orientation.roll);
 
         camera.sensor_width = self.sensor_width;
         camera.sensor_height = self.sensor_height;
@@ -145,10 +152,8 @@ pub struct SphereDescription {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MeshDescription {
     pub model: String,
-    pub center: VectorDescription,
-    pub pitch: f64,
-    pub yaw: f64,
-    pub roll: f64,
+    pub translation: VectorDescription,
+    pub rotation: RotationDescription,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

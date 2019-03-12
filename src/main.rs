@@ -61,9 +61,9 @@ fn main() {
         Ok(t) => t,
     };
 
-    let mut yaw: f64 = scene_description.camera.yaw;
-    let mut pitch: f64 = scene_description.camera.pitch;
-    let mut roll: f64 = scene_description.camera.roll;
+    let mut yaw: f64 = scene_description.camera.orientation.yaw;
+    let mut pitch: f64 = scene_description.camera.orientation.pitch;
+    let mut roll: f64 = scene_description.camera.orientation.roll;
 
     let mut renderer = Renderer::new(Arc::new(scene), 4);
 
