@@ -12,17 +12,21 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [x] Multithreading
 - [x] Collision acceleration (BVH)
 - [ ] Textures
-- [ ] Triangle meshes
-- [ ] Normal smoothing (of triangle meshes)
+- [x] Triangle meshes
+- [x] Normal smoothing (of triangle meshes)
 - [x] Importance sampling
 - [x] Reflective materials
 - [x] Glossy materials
 - [x] Camera lens simulation
 - [ ] Translucent materials (refraction)
 - [ ] Subsurface scattering
+- [ ] Direct lighting
 - [ ] Bi-directional path tracing
 
 ### Examples
+
+[2019/03/12] Teapot model with ~6000 triangles and smoothed normals
+![image](https://user-images.githubusercontent.com/3620166/54186300-6c379d00-44ee-11e9-9f03-ce701cbdd71f.png)
 
 [2019/03/11] 500 randomly generated spheres
 ![image](https://user-images.githubusercontent.com/3620166/54086894-1b5e6200-4391-11e9-8400-041ce5de0579.png)
