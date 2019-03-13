@@ -147,10 +147,10 @@ impl BoundedVolume for Triangle {
         let bn = self.vertex_normals[1];
         let cn = self.vertex_normals[2];
 
+        let cos_theta = n.dot(ray.direction);
+
         // d = constant term of triangle plane
         let d = n.dot(a);
-
-        let cos_theta = n.dot(ray.direction);
 
         // t = distance along ray of intersection with plane
         let t = (d - n.dot(ray.origin)) / cos_theta;
@@ -182,7 +182,9 @@ impl BoundedVolume for Triangle {
         if bx < 0.0 || by < 0.0 || bz < 0.0 {
             None
         } else {
-            Some(Collision{ distance: t, location: p, normal: smooth_normal })
+            // Flip the normal if we're hitting the triangle from the back;
+            let back_side_multiplier = if cos_theta > 0.0 { -1.0 } else { 1.0 };
+            Some(Collision{ distance: t, location: p, normal: smooth_normal * back_side_multiplier })
         }
     }
 
