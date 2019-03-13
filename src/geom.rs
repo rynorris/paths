@@ -150,8 +150,10 @@ impl BoundedVolume for Triangle {
         // d = constant term of triangle plane
         let d = n.dot(a);
 
+        let cos_theta = n.dot(ray.direction);
+
         // t = distance along ray of intersection with plane
-        let t = (d - n.dot(ray.origin)) / (n.dot(ray.direction));
+        let t = (d - n.dot(ray.origin)) / cos_theta;
 
         if t.is_nan() || t < 0.0 {
             return None;
@@ -170,6 +172,12 @@ impl BoundedVolume for Triangle {
         let bz = 1.0 - bx - by;
 
         let smooth_normal = an * bx + bn * by + cn * bz;
+
+        // If the smoothed face of the triangle curves away from the ray then we shouldn't have hit
+        // it.
+        if smooth_normal.dot(ray.direction) * cos_theta < 0.0 {
+            return None;
+        }
         
         if bx < 0.0 || by < 0.0 || bz < 0.0 {
             None
