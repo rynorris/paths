@@ -133,6 +133,7 @@ impl Gloss {
 impl Material for Gloss {
     fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
         let cos_theta = vec_out.dot(normal);
+
         let r0 = self.fresnel_r0;
         let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
 
