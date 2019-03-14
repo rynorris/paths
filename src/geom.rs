@@ -171,12 +171,15 @@ impl BoundedVolume for Triangle {
         let by = area_pca / area_abc;
         let bz = 1.0 - bx - by;
 
-        let smooth_normal = an * bx + bn * by + cn * bz;
+        let mut smooth_normal = an * bx + bn * by + cn * bz;
 
-        // If the smoothed face of the triangle curves away from the ray then we shouldn't have hit
-        // it.
+        // If the smoothed face of the triangle curves away from the ray then scale it back so it
+        // barely doesn't.
         if smooth_normal.dot(ray.direction) * cos_theta < 0.0 {
-            return None;
+            let epsilon = 0.05;  // Chosen experimentally.
+            let cos_alpha = smooth_normal.dot(ray.direction);
+            let scale = (cos_alpha - epsilon) / (cos_theta + cos_alpha);
+            smooth_normal = (n * scale + smooth_normal * (1.0 - scale)).normed();
         }
         
         if bx < 0.0 || by < 0.0 || bz < 0.0 {
