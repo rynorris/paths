@@ -75,8 +75,8 @@ impl Renderer {
         let reflectance = material.weight_pdf(ray.direction * -1, collision.normal);
 
         // Chance for the material to eat the ray.
-        let absorption_chance = reflectance.max();
-        if rand::thread_rng().gen::<f64>() > absorption_chance {
+        let survival_chance = if depth >= 2 { reflectance.max() } else { 1.0 };
+        if rand::thread_rng().gen::<f64>() > survival_chance {
             return emittance;
         }
 
@@ -87,6 +87,6 @@ impl Renderer {
 
         let incoming: Colour = Renderer::trace_ray(scene, new_ray, depth + 1);
 
-        return emittance + (reflectance * incoming / absorption_chance);
+        return emittance + (reflectance * incoming / survival_chance);
     }
 }

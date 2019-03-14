@@ -147,11 +147,13 @@ impl BoundedVolume for Triangle {
         let bn = self.vertex_normals[1];
         let cn = self.vertex_normals[2];
 
+        let cos_theta = n.dot(ray.direction);
+
         // d = constant term of triangle plane
         let d = n.dot(a);
 
         // t = distance along ray of intersection with plane
-        let t = (d - n.dot(ray.origin)) / (n.dot(ray.direction));
+        let t = (d - n.dot(ray.origin)) / cos_theta;
 
         if t.is_nan() || t < 0.0 {
             return None;
@@ -169,12 +171,23 @@ impl BoundedVolume for Triangle {
         let by = area_pca / area_abc;
         let bz = 1.0 - bx - by;
 
-        let smooth_normal = an * bx + bn * by + cn * bz;
+        let mut smooth_normal = an * bx + bn * by + cn * bz;
+
+        // If the smoothed face of the triangle curves away from the ray then scale it back so it
+        // barely doesn't.
+        if smooth_normal.dot(ray.direction) * cos_theta < 0.0 {
+            let epsilon = 0.05;  // Chosen experimentally.
+            let cos_alpha = smooth_normal.dot(ray.direction);
+            let scale = (cos_alpha - epsilon) / (cos_theta + cos_alpha);
+            smooth_normal = (n * scale + smooth_normal * (1.0 - scale)).normed();
+        }
         
         if bx < 0.0 || by < 0.0 || bz < 0.0 {
             None
         } else {
-            Some(Collision{ distance: t, location: p, normal: smooth_normal })
+            // Flip the normal if we're hitting the triangle from the back;
+            let back_side_multiplier = if cos_theta > 0.0 { -1.0 } else { 1.0 };
+            Some(Collision{ distance: t, location: p, normal: smooth_normal * back_side_multiplier })
         }
     }
 

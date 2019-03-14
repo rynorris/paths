@@ -104,26 +104,41 @@ impl <T : BoundedVolume> BVH<T> {
             q.push(SearchNode{ node: &self.root, distance });
         }
 
+        let mut closest_collision: Option<(Collision, &T)> = None;
+
         while !q.is_empty() {
             let sn = q.pop().expect("Queue is not empty");
             match sn.node {
                 Node::Leaf(ref leaf) => {
                     if let Some(col) = leaf.obj.intersect(ray) {
-                        return Some((col, &leaf.obj));
+                        closest_collision = match closest_collision {
+                            Some((best, o)) =>  {
+                                if col.distance < best.distance {
+                                    Some((col, &leaf.obj))
+                                } else {
+                                    Some((best, o))
+                                }
+                            },
+                            None => Some((col, &leaf.obj)),
+                        };
                     }
                 },
                 Node::Cluster(clus) => {
                     if let Some(distance) = ray_box_collide(&ray, &clus.left.aabb()) {
-                        q.push(SearchNode{ node: &clus.left, distance });
+                        if closest_collision.map_or(true, |(best, _)| distance <= best.distance) {
+                            q.push(SearchNode{ node: &clus.left, distance });
+                        }
                     }
 
                     if let Some(distance) = ray_box_collide(&ray, &clus.right.aabb()) {
-                        q.push(SearchNode{ node: &clus.right, distance });
+                        if closest_collision.map_or(true, |(best, _)| distance <= best.distance) {
+                            q.push(SearchNode{ node: &clus.right, distance });
+                        }
                     }
                 },
             }
         }
-        None
+        closest_collision
     }
 }
 
