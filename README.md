@@ -25,8 +25,8 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 
 ### Examples
 
-[2019/03/12] Teapot model with ~6000 triangles and smoothed normals
-![image](https://user-images.githubusercontent.com/3620166/54186300-6c379d00-44ee-11e9-9f03-ce701cbdd71f.png)
+[2019/03/14] Teapot model with ~6000 triangles and smoothed normals
+![image](https://user-images.githubusercontent.com/3620166/54364159-a603d180-46af-11e9-973c-cbab9fac9685.png)
 
 [2019/03/11] 500 randomly generated spheres
 ![image](https://user-images.githubusercontent.com/3620166/54086894-1b5e6200-4391-11e9-8400-041ce5de0579.png)
