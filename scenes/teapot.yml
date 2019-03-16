@@ -26,15 +26,17 @@ objects:
       rotation: { pitch: 0.4, yaw: 0.0, roll: 0.0 }
       scale: 1.0
     material:
-      type: Gloss
+      type: CookTorrance
       albedo: { r: 0.8, g: 0.3, b: 0.3 }
-      reflectance: 2.0
+      roughness: 0.1
+      refractive_index: 1.0
 
   - shape:
       type: Sphere
       radius: 1000000.0
       center: { x: 0.0, y: -1000000.0, z: 0.0 }
     material:
-      type: Gloss
+      type: CookTorrance
       albedo: { r: 0.8, g: 0.8, b: 0.8 }
-      reflectance: 2.5
+      roughness: 1.0
+      refractive_index: 1.0

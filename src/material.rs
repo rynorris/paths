@@ -7,7 +7,7 @@ use crate::colour::Colour;
 use crate::vector::Vector3;
 
 pub trait Material : MaterialClone + Send + Sync {
-    fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour;
+    fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour;
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3;
     fn emittance(&self, vec_out: Vector3, cos_out: f64) -> Colour;
     fn brdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour;
@@ -46,7 +46,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn weight_pdf(&self, _vec_out: Vector3, _normal: Vector3) -> Colour {
+    fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
         self.albedo
     }
 
@@ -91,7 +91,7 @@ impl Mirror {
 }
 
 impl Material for Mirror {
-    fn weight_pdf(&self, _vec_out: Vector3, _normal: Vector3) -> Colour {
+    fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
         Colour::rgb(1.0, 1.0, 1.0)
     }
 
@@ -131,7 +131,7 @@ impl Gloss {
 }
 
 impl Material for Gloss {
-    fn weight_pdf(&self, vec_out: Vector3, normal: Vector3) -> Colour {
+    fn weight_pdf(&self, vec_out: Vector3, _vec_in: Vector3, normal: Vector3) -> Colour {
         let cos_theta = vec_out.dot(normal);
 
         let r0 = self.fresnel_r0;
@@ -160,3 +160,78 @@ impl Material for Gloss {
         self.lambertian.albedo
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub struct CookTorrance {
+    roughness: f64,
+    albedo: Colour,
+    refractive_index: f64,
+}
+
+impl CookTorrance {
+    pub fn new(albedo: Colour, roughness: f64, refractive_index: f64) -> CookTorrance {
+        CookTorrance { roughness,  albedo, refractive_index }
+    }
+}
+
+impl Material for CookTorrance {
+    fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
+        // Half-vector.
+        let h = (vec_out - vec_in).normed();
+
+        let cos_theta = vec_in.dot(normal).abs();
+        //
+        // Geometric term.
+        let ndl = normal.dot(vec_out).abs();
+        let vdh = vec_in.dot(h).abs();
+        let ndh = normal.dot(h).abs();
+        let ndv = cos_theta;
+        let g = 1f64.min(((2.0 * ndh * ndv) / vdh).min((2.0 * ndh * ndl) / vdh));
+
+        // Fresnel term.
+        // Schlick's approximation for the fresnel factor.
+        let n1 = 1.0;
+        let n2 = self.refractive_index;
+        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
+        let f = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
+        // Microfacet normalization term.
+        let norm = 1.0 / (PI * self.roughness.powf(2.0) * ndh.powf(4.0));
+
+        self.albedo * norm * f * g / ndv
+    }
+
+    fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
+        // Sample a microfacet normal.
+        // See https://agraphicsguy.wordpress.com/2015/11/01/sampling-microfacet-brdf/ for a
+        // derivation.
+        let mut rng = rand::thread_rng();
+        let e = rng.gen::<f64>();
+        let a = self.roughness;
+        let theta = (a.powf(2.0) * (1.0 - e).exp() * -1.0).atan();
+        let phi = rng.gen::<f64>()  * 2.0 * PI;
+
+        let sin_theta =  theta.sin();
+        let cos_theta = theta.cos();
+
+        let facet_normal = Vector3::new(
+            sin_theta * phi.cos(),
+            cos_theta,
+            sin_theta * phi.sin(),
+            );
+
+        let (i, j, k) = normal.form_basis();
+        let world_facet_normal = to_basis(facet_normal, i, j, k).normed();
+
+        Mirror::reflect(vec_out, world_facet_normal)
+    }
+
+    fn emittance(&self, _vec_out: Vector3, _cos_out: f64) -> Colour {
+        Colour::BLACK
+    }
+
+    fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
+        Colour::BLACK
+    }
+}
+

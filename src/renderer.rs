@@ -72,18 +72,18 @@ impl Renderer {
 
         let emittance = material.emittance(ray.direction * -1, cos_out);
 
-        let reflectance = material.weight_pdf(ray.direction * -1, collision.normal);
+        let new_ray = Ray{
+            origin: collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
+            direction: material.sample_pdf(ray.direction * -1, collision.normal),
+        };
+
+        let reflectance = material.weight_pdf(ray.direction * -1, new_ray.direction * -1, collision.normal);
 
         // Chance for the material to eat the ray.
         let survival_chance = if depth >= 2 { reflectance.max() } else { 1.0 };
         if rand::thread_rng().gen::<f64>() > survival_chance {
             return emittance;
         }
-
-        let new_ray = Ray{
-            origin: collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
-            direction: material.sample_pdf(ray.direction * -1, collision.normal),
-        };
 
         let incoming: Colour = Renderer::trace_ray(scene, new_ray, depth + 1);
 

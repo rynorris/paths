@@ -166,6 +166,7 @@ pub enum MaterialDescription {
     Lambertian(LambertianMaterialDescription),
     Gloss(GlossMaterialDescription),
     Mirror(MirrorMaterialDescription),
+    CookTorrance(CookTorranceMaterialDescription),
 }
 
 impl MaterialDescription {
@@ -174,6 +175,7 @@ impl MaterialDescription {
             MaterialDescription::Lambertian(mat) => Box::new(material::Lambertian::new(mat.albedo.to_colour(), Colour::BLACK)),
             MaterialDescription::Gloss(mat) => Box::new(material::Gloss::new(mat.albedo.to_colour(), mat.reflectance)),
             MaterialDescription::Mirror(_) => Box::new(material::Mirror{}),
+            MaterialDescription::CookTorrance(mat) => Box::new(material::CookTorrance::new(mat.albedo.to_colour(), mat.roughness, mat.refractive_index)),
         }
     }
 }
@@ -191,6 +193,13 @@ pub struct GlossMaterialDescription {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MirrorMaterialDescription {}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CookTorranceMaterialDescription {
+    pub albedo: ColourDescription,
+    pub roughness: f64,
+    pub refractive_index: f64,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
