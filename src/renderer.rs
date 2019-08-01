@@ -77,16 +77,16 @@ impl Renderer {
             direction: material.sample_pdf(ray.direction * -1, collision.normal),
         };
 
-        let reflectance = material.weight_pdf(ray.direction * -1, new_ray.direction * -1, collision.normal);
+        let pdf = material.weight_pdf(ray.direction * -1, new_ray.direction * -1, collision.normal);
 
         // Chance for the material to eat the ray.
-        let survival_chance = if depth >= 2 { reflectance.max() } else { 1.0 };
+        let survival_chance = pdf;
         if rand::thread_rng().gen::<f64>() > survival_chance {
             return emittance;
         }
 
         let incoming: Colour = Renderer::trace_ray(scene, new_ray, depth + 1);
 
-        return emittance + (reflectance * incoming / survival_chance);
+        return emittance + (material.brdf(ray.direction * -1, new_ray.direction * -1, collision.normal) * incoming / survival_chance);
     }
 }

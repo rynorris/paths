@@ -27,9 +27,9 @@ objects:
       scale: 1.0
     material:
       type: CookTorrance
-      albedo: { r: 0.8, g: 0.3, b: 0.3 }
+      albedo: { r: 0.8, g: 0.5, b: 0.3 }
       roughness: 0.1
-      refractive_index: 1.0
+      refractive_index: 0.10
 
   - shape:
       type: Sphere
@@ -38,5 +38,5 @@ objects:
     material:
       type: CookTorrance
       albedo: { r: 0.8, g: 0.8, b: 0.8 }
-      roughness: 1.0
-      refractive_index: 1.0
+      roughness: 0.2
+      refractive_index: 0.0
