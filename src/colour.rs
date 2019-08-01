@@ -40,6 +40,11 @@ impl Colour {
         if w > self.b { w } else { self.b }
     }
 
+    pub fn clamped(self) -> Colour {
+        let max = self.max();
+        self / max
+    }
+
     fn component_to_byte(x: f64) -> u8 {
         let rounded = (x * 256.0) as i16;
         if rounded >= 256 {

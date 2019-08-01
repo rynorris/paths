@@ -177,26 +177,29 @@ impl CookTorrance {
 impl Material for CookTorrance {
     fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
         let h = (vec_out - vec_in).normed();
-        let cos_theta = vec_in.dot(normal);
+        let cos_theta = h.dot(normal);
+        let cos_phi = vec_out.dot(h);
 
-        if vec_in.dot(h) > 0.0 {
+        if cos_theta < 0.0 || cos_phi < 0.0 {
             return 0.0;
         }
 
-        // Schlick's approximation for the fresnel factor.
-        let n1 = 1.0;
-        let n2 = self.refractive_index;
-        let f0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
-        let f = f0 + (1.0 - f0) * (1.0 - cos_theta).powf(5.0);
+        let theta = cos_theta.acos();
+        let sin_theta = theta.sin();
+        let tan_theta = theta.tan();
+        let a = self.roughness;
 
-        // Geometric term.
-        let ndl = normal.dot(vec_out).abs();
-        let vdh = vec_in.dot(h).abs();
-        let ndh = normal.dot(h).abs();
-        let ndv = cos_theta;
-        let g = 1f64.min(((2.0 * ndh * ndv) / vdh).min((2.0 * ndh * ndl) / vdh));
+        let exp = (-1.0 * (tan_theta * tan_theta) / (a * a)).exp();
+        let p = (2.0 * sin_theta / (a * a * cos_theta.powf(3.0))) * exp;
 
-        (f * g) / (4.0 * ndv * ndh)
+        let pdf = p / (4.0 * vec_out.dot(h));
+
+        if pdf < 0.0 {
+            println!("ERROR: pdf={:.1}, p={:.1}, exp={:.1}, cos_theta={:.1}, sin_theta={:.1}, theta={:.1}", pdf, p, exp, cos_theta, sin_theta, theta);
+            panic!();
+        }
+
+        pdf
     }
 
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
@@ -206,7 +209,7 @@ impl Material for CookTorrance {
         let mut rng = rand::thread_rng();
         let e = rng.gen::<f64>();
         let a = self.roughness;
-        let theta = (a.powf(2.0) * (1.0 - e).ln() * -1.0).atan();
+        let theta = (a.powf(2.0) * (1.0 - e).ln() * -1.0).sqrt().atan();
         let phi = rng.gen::<f64>()  * 2.0 * PI;
 
         let sin_theta =  theta.sin();
@@ -218,8 +221,19 @@ impl Material for CookTorrance {
             sin_theta * phi.sin(),
             );
 
+        if cos_theta < 0.0 {
+            println!("Invalid sample: cos_theta={:.1}", cos_theta);
+            panic!();
+        }
+
         let (i, j, k) = normal.form_basis();
         let world_facet_normal = to_basis(facet_normal, i, j, k).normed();
+
+        let tmp = world_facet_normal.dot(normal);
+        if tmp < 0.0 {
+            println!("Basis transform fucked up: cos_theta before={:.1}, after={:.1}", cos_theta, tmp);
+            panic!();
+        }
 
         Mirror::reflect(vec_out, world_facet_normal)
     }
@@ -229,10 +243,15 @@ impl Material for CookTorrance {
     }
 
     fn brdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
+        // In this function:
+        //   h = half-angle = microfacet normal
+        //   theta = angle between microfacet normal and surface normal
+        //   phi = angle of incidence with microfacet normal
         let h = (vec_out - vec_in).normed();
-        let cos_theta = vec_in.dot(normal);
+        let cos_theta = h.dot(normal);
+        let cos_phi = vec_out.dot(h);
 
-        if vec_in.dot(h) > 0.0 {
+        if vec_in.dot(h) > 0.0  || vec_in.dot(normal) > 0.0{
             return Colour::BLACK;
         }
 
@@ -240,16 +259,33 @@ impl Material for CookTorrance {
         let n1 = 1.0;
         let n2 = self.refractive_index;
         let f0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
-        let f = f0 + (1.0 - f0) * (1.0 - cos_theta).powf(5.0);
+        let f = f0 + (1.0 - f0) * (1.0 - cos_phi).powf(5.0);
+
+        // Beckmann NDF.
+        let theta = cos_theta.acos();
+        let tan_theta = theta.tan();
+        let a = self.roughness;
+
+        let exp = (-1.0 * (tan_theta * tan_theta) / (a * a)).exp();
+        let d = (1.0 / (PI * a * a * cos_theta.powf(4.0))) * exp;
 
         // Geometric term.
-        let ndl = normal.dot(vec_out).abs();
-        let vdh = vec_in.dot(h).abs();
-        let ndh = normal.dot(h).abs();
-        let ndv = cos_theta;
+        let ndl = normal.dot(vec_out);
+        let vdh = (vec_in * -1.0).dot(h);
+        let ndh = normal.dot(h);
+        let ndv = (vec_in * -1.0).dot(normal);
         let g = 1f64.min(((2.0 * ndh * ndv) / vdh).min((2.0 * ndh * ndl) / vdh));
 
-        self.albedo * (f * g) / (4.0 * ndv * ndh)
+        let c = self.albedo * (f * d * g) / (4.0 * ndv * ndh);
+
+        /*
+        if c.max() > 1.0 {
+            println!("ERROR. f={:.1}, d={:.1}, g={:.1}, ndv={:.1}, ndh={:.1}, c={:?}", f, d, g, ndv, ndh, c);
+            panic!();
+        }
+        */
+
+        c
     }
 }
 
