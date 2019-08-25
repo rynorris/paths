@@ -40,6 +40,11 @@ impl Colour {
         if w > self.b { w } else { self.b }
     }
 
+    pub fn min(&self) -> f64 {
+        let w = if self.r < self.g { self.r } else { self.g };
+        if w < self.b { w } else { self.b }
+    }
+
     pub fn clamped(self) -> Colour {
         Colour {
             r: 0f64.max(1f64.min(self.r)),

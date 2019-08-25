@@ -47,6 +47,12 @@ impl Renderer {
             });
         }
 
+        self.pool.join();
+
+        if self.pool.panic_count() > 0 {
+            panic!("{} rendering threads panicked while rendering.", self.pool.panic_count());
+        }
+
         let num_pixels = self.scene.camera.height * self.scene.camera.width;
         rx.iter().take(num_pixels as usize).for_each(|(x, y, colour)| {
             self.estimator.update_pixel(x as usize, y as usize, colour);
@@ -86,7 +92,7 @@ impl Renderer {
             let pdf = material.weight_pdf(ray.direction * -1, new_ray.direction * -1, collision.normal);
 
             let attenuation = material.brdf(ray.direction * -1, new_ray.direction * -1, collision.normal) / pdf;
-            throughput = throughput * attenuation;
+            throughput = throughput * attenuation.clamped();
 
             colour += emittance * throughput;
 
@@ -102,6 +108,6 @@ impl Renderer {
             loops += 1;
         }
 
-        return colour.clamped();
+        colour
     }
 }
