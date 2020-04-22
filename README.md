@@ -17,6 +17,7 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [x] Importance sampling
 - [x] Reflective materials
 - [x] Glossy materials
+- [x] Microfacet specular model
 - [x] Camera lens simulation
 - [ ] Translucent materials (refraction)
 - [ ] Subsurface scattering
@@ -24,6 +25,9 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [ ] Bi-directional path tracing
 
 ### Examples
+
+[2020/04/22] Microfacet model to create shiny, rough teapot material
+![image](https://user-images.githubusercontent.com/3620166/79968000-87832300-84ca-11ea-9807-384fef0dbc7e.png)
 
 [2019/03/14] Teapot model with ~6000 triangles and smoothed normals
 ![image](https://user-images.githubusercontent.com/3620166/54364159-a603d180-46af-11e9-973c-cbab9fac9685.png)
