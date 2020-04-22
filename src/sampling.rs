@@ -88,16 +88,16 @@ impl CorrelatedMultiJitteredSampler {
         w |= w >> 8;
         w |= w >> 16;
         while i > l {
-            i ^= p;             i *= 0xe170_893d;
+            i ^= p;             i = i.wrapping_mul(0xe170_893d);
             i ^= p       >> 16;
             i ^= (i & w) >> 4;
-            i ^= p       >> 8;  i *= 0x0929_eb3f;
+            i ^= p       >> 8;  i = i.wrapping_mul(0x0929_eb3f);
             i ^= p       >> 23;
-            i ^= (i & w) >> 1;  i *= 1 | p >> 27;
-                                i *= 0x6935_fa69;
-            i ^= (i & w) >> 11; i *= 0x74dc_b303;
-            i ^= (i & w) >> 2;  i *= 0x9e50_1cc3;
-            i ^= (i & w) >> 2;  i *= 0xc860_a3df;
+            i ^= (i & w) >> 1;  i = i.wrapping_mul(1 | p >> 27);
+                                i = i.wrapping_mul(0x6935_fa69);
+            i ^= (i & w) >> 11; i = i.wrapping_mul(0x74dc_b303);
+            i ^= (i & w) >> 2;  i = i.wrapping_mul(0x9e50_1cc3);
+            i ^= (i & w) >> 2;  i = i.wrapping_mul(0xc860_a3df);
             i &= w;
             i ^= i       >> 5;
         }
@@ -108,11 +108,11 @@ impl CorrelatedMultiJitteredSampler {
     fn rand_float(mut i: u32, p: u32) -> f64 {
         i ^= p;
         i ^= i >> 17;
-        i ^= i >> 10; i *= 0xb365_34e5;
+        i ^= i >> 10; i = i.wrapping_mul(0xb365_34e5);
         i ^= i >> 12;
-        i ^= i >> 21; i *= 0x93fc_4795;
+        i ^= i >> 21; i = i.wrapping_mul(0x93fc_4795);
         i ^= 0xdf6e_307f;
-        i ^= i >> 17; i *= 1 | p >> 18;
+        i ^= i >> 17; i = i.wrapping_mul(1 | p >> 18);
         (i as f64) * (1.0 / 4_294_967_808.0)
     }
 
@@ -120,11 +120,11 @@ impl CorrelatedMultiJitteredSampler {
     // m, n = sample dimensions (m x n = N = number of samples total)
     // p = pattern index (like a seed)
     fn cmj(s: u32, m: u32, n: u32, p: u32) -> (f64, f64) {
-        let ps: u32 = CorrelatedMultiJitteredSampler::permute(s, m*n, p * 0xa73b_d290);
-        let sx: f64 = CorrelatedMultiJitteredSampler::permute(ps % m, m, p * 0xa511_e9b3) as f64;
-        let sy: f64 = CorrelatedMultiJitteredSampler::permute(ps / m, n, p * 0x63d8_3595) as f64;
-        let jx: f64 = CorrelatedMultiJitteredSampler::rand_float(s, p * 0xa399_d265);
-        let jy: f64 = CorrelatedMultiJitteredSampler::rand_float(s, p * 0x711a_d6a5);
+        let ps: u32 = CorrelatedMultiJitteredSampler::permute(s, m*n, p.wrapping_mul(0xa73b_d290));
+        let sx: f64 = CorrelatedMultiJitteredSampler::permute(ps % m, m, p.wrapping_mul(0xa511_e9b3)) as f64;
+        let sy: f64 = CorrelatedMultiJitteredSampler::permute(ps / m, n, p.wrapping_mul(0x63d8_3595)) as f64;
+        let jx: f64 = CorrelatedMultiJitteredSampler::rand_float(s, p.wrapping_mul(0xa399_d265));
+        let jy: f64 = CorrelatedMultiJitteredSampler::rand_float(s, p.wrapping_mul(0x711a_d6a5));
         let x: f64 = (((s % m) as f64) + (sy + jx) / (n as f64)) / (m as f64);
         let y: f64 = (((s / m) as f64) + (sx + jy) / (m as f64)) / (n as f64);
         (x, y)

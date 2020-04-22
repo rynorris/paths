@@ -68,7 +68,7 @@ impl SceneDescription {
         });
 
         self.objects.iter().for_each(|o| {
-            let material = o.material.to_material();
+            let material: Box<dyn material::Material> = (&o.material).into();
             let shapes: Vec<Box<geom::Shape>> = match o.shape {
                 ShapeDescription::Sphere(ref shp) => vec![Box::new(geom::Sphere{
                     center: shp.center.to_vector(),
@@ -166,15 +166,31 @@ pub enum MaterialDescription {
     Lambertian(LambertianMaterialDescription),
     Gloss(GlossMaterialDescription),
     Mirror(MirrorMaterialDescription),
+    CookTorrance(CookTorranceMaterialDescription),
+    Fresnel(FresnelMaterialDescription),
 }
 
-impl MaterialDescription {
-    pub fn to_material(&self) -> Box<material::Material> {
-        match self {
+impl From<&MaterialDescription> for Box<dyn material::Material> {
+    fn from(desc: &MaterialDescription) -> Box<dyn material::Material> {
+        match desc {
             MaterialDescription::Lambertian(mat) => Box::new(material::Lambertian::new(mat.albedo.to_colour(), Colour::BLACK)),
             MaterialDescription::Gloss(mat) => Box::new(material::Gloss::new(mat.albedo.to_colour(), mat.reflectance)),
-            MaterialDescription::Mirror(_) => Box::new(material::Mirror{}),
+            MaterialDescription::Mirror(_mat) => Box::new(material::Mirror{}),
+            MaterialDescription::CookTorrance(mat) => Box::new(material::CookTorrance::new(mat.albedo.to_colour(), mat.roughness)),
+            MaterialDescription::Fresnel(mat) => Box::new(
+                material::FresnelCombination::new(
+                    mat.diffuse.clone().into(),
+                    mat.specular.clone().into(),
+                    mat.refractive_index
+                )
+            ),
         }
+    }
+}
+
+impl From<Box<MaterialDescription>> for Box<dyn material::Material> {
+    fn from(desc: Box<MaterialDescription>) -> Box<dyn material::Material> {
+        desc.as_ref().into()
     }
 }
 
@@ -191,6 +207,19 @@ pub struct GlossMaterialDescription {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MirrorMaterialDescription {}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CookTorranceMaterialDescription {
+    pub albedo: ColourDescription,
+    pub roughness: f64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FresnelMaterialDescription {
+    pub refractive_index: f64,
+    pub diffuse: Box<MaterialDescription>,
+    pub specular: Box<MaterialDescription>,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]

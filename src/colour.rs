@@ -40,6 +40,19 @@ impl Colour {
         if w > self.b { w } else { self.b }
     }
 
+    pub fn min(&self) -> f64 {
+        let w = if self.r < self.g { self.r } else { self.g };
+        if w < self.b { w } else { self.b }
+    }
+
+    pub fn clamped(self) -> Colour {
+        Colour {
+            r: 0f64.max(1f64.min(self.r)),
+            g: 0f64.max(1f64.min(self.g)),
+            b: 0f64.max(1f64.min(self.b)),
+        }
+    }
+
     fn component_to_byte(x: f64) -> u8 {
         let rounded = (x * 256.0) as i16;
         if rounded >= 256 {

@@ -26,9 +26,30 @@ objects:
       rotation: { pitch: 0.4, yaw: 0.0, roll: 0.0 }
       scale: 1.0
     material:
-      type: Gloss
-      albedo: { r: 0.8, g: 0.3, b: 0.3 }
-      reflectance: 2.0
+      type: Fresnel
+      refractive_index: 1.5
+      diffuse:
+        type: Lambertian
+        albedo: { r: 0.8, g: 0.3, b: 0.3 }
+      specular: 
+        type: CookTorrance
+        albedo: { r: 1.0, g: 1.0, b: 1.0 }
+        roughness: 0.1
+
+  - shape:
+      type: Sphere
+      radius: 1.0
+      center: { x: 3.0, y: 1.0, z: 0.0 }
+    material:
+      type: Fresnel
+      refractive_index: 2.5
+      diffuse:
+        type: Lambertian
+        albedo: { r: 0.5, g: 0.5, b: 0.8 }
+      specular: 
+        type: CookTorrance
+        albedo: { r: 1.0, g: 1.0, b: 1.0 }
+        roughness: 0.01
 
   - shape:
       type: Sphere
