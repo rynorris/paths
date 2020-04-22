@@ -175,7 +175,13 @@ impl MaterialDescription {
             MaterialDescription::Lambertian(mat) => Box::new(material::Lambertian::new(mat.albedo.to_colour(), Colour::BLACK)),
             MaterialDescription::Gloss(mat) => Box::new(material::Gloss::new(mat.albedo.to_colour(), mat.reflectance)),
             MaterialDescription::Mirror(_) => Box::new(material::Mirror{}),
-            MaterialDescription::CookTorrance(mat) => Box::new(material::CookTorrance::new(mat.albedo.to_colour(), mat.roughness, mat.refractive_index)),
+            MaterialDescription::CookTorrance(mat) => Box::new(
+                material::FresnelCombination::new(
+                    material::Lambertian::new(mat.albedo.to_colour(), Colour::BLACK),
+                    material::CookTorrance::new(mat.albedo.to_colour(), mat.roughness, mat.refractive_index),
+                    mat.refractive_index
+                )
+            ),
         }
     }
 }

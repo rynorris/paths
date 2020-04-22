@@ -92,7 +92,7 @@ impl Renderer {
             let pdf = material.weight_pdf(ray.direction * -1, new_ray.direction * -1, collision.normal);
 
             let attenuation = material.brdf(ray.direction * -1, new_ray.direction * -1, collision.normal) / pdf;
-            throughput = throughput * attenuation.clamped();
+            throughput = throughput * attenuation;
 
             colour += emittance * throughput;
 

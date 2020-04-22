@@ -162,6 +162,69 @@ impl Material for Gloss {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct FresnelCombination<DiffuseM, SpecularM> 
+    where DiffuseM : Material, SpecularM : Material 
+{
+    diffuse: DiffuseM,
+    specular: SpecularM,
+    fresnel_r0: f64,
+}
+
+impl <DiffuseM, SpecularM> FresnelCombination<DiffuseM, SpecularM>
+    where DiffuseM : Material, SpecularM : Material 
+{
+    pub fn new(diffuse: DiffuseM, specular: SpecularM, refractive_index: f64) -> FresnelCombination<DiffuseM, SpecularM> {
+        // Schlick's approximation for the fresnel factor.
+        let n1: f64 = 1.0;  // Air
+        let n2: f64 = refractive_index;
+        let fresnel_r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
+
+        FresnelCombination { diffuse, specular, fresnel_r0 }
+    }
+
+    fn fresnel_weight(&self, vec_out: Vector3, normal: Vector3) -> f64 {
+        let cos_theta = vec_out.dot(normal);
+        let r0 = self.fresnel_r0;
+        r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0)
+    }
+}
+
+impl <DiffuseM, SpecularM> Material for FresnelCombination<DiffuseM, SpecularM>
+    where DiffuseM : Material + Clone + 'static, SpecularM : Material + Clone + 'static
+{
+    fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
+        let r = self.fresnel_weight(vec_out, normal);
+        let diffuse_weight = self.diffuse.weight_pdf(vec_out, vec_in, normal);
+        let specular_weight = self.specular.weight_pdf(vec_out, vec_in, normal);
+        diffuse_weight * (1.0 - r) + specular_weight * r
+    }
+
+    fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
+        let r = self.fresnel_weight(vec_out, normal);
+
+        if rand::thread_rng().gen::<f64>() > r {
+            self.diffuse.sample_pdf(vec_out, normal)
+        } else {
+            self.specular.sample_pdf(vec_out, normal)
+        }
+    }
+
+    fn emittance(&self, vec_out: Vector3, cos_out: f64) -> Colour {
+        // Specular emittance doesn't make sense?
+        self.diffuse.emittance(vec_out, cos_out)
+    }
+
+    fn brdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
+        let r = self.fresnel_weight(vec_out, normal);
+
+        let diffuse_brdf = self.diffuse.brdf(vec_out, vec_in, normal);
+        let specular_brdf = self.specular.brdf(vec_out, vec_in, normal);
+
+        diffuse_brdf * (1.0 - r) + specular_brdf * r
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct CookTorrance {
     roughness: f64,
     albedo: Colour,
@@ -247,13 +310,6 @@ impl Material for CookTorrance {
         //   theta = angle between microfacet normal and surface normal
         //   phi = angle of incidence with microfacet normal
         let h = (vec_out - vec_in).normed();
-        let cos_phi = vec_out.dot(h);
-
-        // Schlick's approximation for the fresnel factor.
-        let n1 = 1.0;
-        let n2 = self.refractive_index;
-        let f0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
-        let f = f0 + (1.0 - f0) * (1.0 - cos_phi).powf(5.0);
 
         let d = self.ndf(normal, h);
 
@@ -264,22 +320,8 @@ impl Material for CookTorrance {
         let ndv = normal.dot(vec_out);
         let g = 0f64.max(1f64.min(((2.0 * ndh * ndv) / vdh).min((2.0 * ndh * ndl) / vdh)));
 
-        let c = self.albedo * (f * d * g) / (4.0 * ndv * ndl);
-
-        /*
-        if c.max() > 1.0 {
-            println!("ERROR. f={:.1}, d={:.1}, g={:.1}, ndv={:.1}, ndh={:.1}, c={:?}", f, d, g, ndv, ndh, c);
-            panic!();
-        }
-
-        if c.min() < 0.0 {
-            println!("g={:.1}, ndh={:.1}, ndv={:.1}, vdh={:.1}, ndl={:.1}", g, ndh, ndv, vdh, ndl);
-            println!("ERROR. f={:.1}, d={:.1}, g={:.1}, ndv={:.1}, ndh={:.1}, c={:?}", f, d, g, ndv, ndh, c);
-            panic!();
-        }
-        */
-
-        c//.clamped()
+        // Specular component.
+        self.albedo * (d * g) / (4.0 * ndv * ndl)
     }
 }
 
