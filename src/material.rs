@@ -6,7 +6,7 @@ use rand::Rng;
 use crate::colour::Colour;
 use crate::vector::Vector3;
 
-pub trait Material : MaterialClone + Send + Sync {
+pub trait Material : MaterialClone + Send + Sync + std::fmt::Debug {
     fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64;
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3;
     fn emittance(&self, vec_out: Vector3, cos_out: f64) -> Colour;
@@ -161,19 +161,15 @@ impl Material for Gloss {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct FresnelCombination<DiffuseM, SpecularM> 
-    where DiffuseM : Material, SpecularM : Material 
-{
-    diffuse: DiffuseM,
-    specular: SpecularM,
+#[derive(Clone, Debug)]
+pub struct FresnelCombination {
+    diffuse: Box<dyn Material>,
+    specular: Box<dyn Material>,
     fresnel_r0: f64,
 }
 
-impl <DiffuseM, SpecularM> FresnelCombination<DiffuseM, SpecularM>
-    where DiffuseM : Material, SpecularM : Material 
-{
-    pub fn new(diffuse: DiffuseM, specular: SpecularM, refractive_index: f64) -> FresnelCombination<DiffuseM, SpecularM> {
+impl FresnelCombination {
+    pub fn new(diffuse: Box<dyn Material>, specular: Box<dyn Material>, refractive_index: f64) -> FresnelCombination {
         // Schlick's approximation for the fresnel factor.
         let n1: f64 = 1.0;  // Air
         let n2: f64 = refractive_index;
@@ -189,9 +185,7 @@ impl <DiffuseM, SpecularM> FresnelCombination<DiffuseM, SpecularM>
     }
 }
 
-impl <DiffuseM, SpecularM> Material for FresnelCombination<DiffuseM, SpecularM>
-    where DiffuseM : Material + Clone + 'static, SpecularM : Material + Clone + 'static
-{
+impl Material for FresnelCombination {
     fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
         let r = self.fresnel_weight(vec_out, normal);
         let diffuse_weight = self.diffuse.weight_pdf(vec_out, vec_in, normal);
