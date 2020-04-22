@@ -56,17 +56,17 @@ pub trait Shape : BoundedVolume + ShapeClone + Send + Sync {}
 impl <T : 'static + BoundedVolume + Clone + Send + Sync> Shape for T {}
 
 pub trait ShapeClone {
-    fn clone_box(&self) -> Box<Shape>;
+    fn clone_box(&self) -> Box<dyn Shape>;
 }
 
 impl <T> ShapeClone for T where T: 'static + Shape + Clone {
-    fn clone_box(&self) -> Box<Shape> {
+    fn clone_box(&self) -> Box<dyn Shape> {
         Box::new(self.clone())
     }
 }
 
-impl Clone for Box<Shape> {
-    fn clone(&self) -> Box<Shape> {
+impl Clone for Box<dyn Shape> {
+    fn clone(&self) -> Box<dyn Shape> {
         self.clone_box()
     }
 }
