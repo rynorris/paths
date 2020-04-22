@@ -178,7 +178,7 @@ impl MaterialDescription {
             MaterialDescription::CookTorrance(mat) => Box::new(
                 material::FresnelCombination::new(
                     material::Lambertian::new(mat.albedo.to_colour(), Colour::BLACK),
-                    material::CookTorrance::new(Colour::WHITE, mat.roughness, mat.refractive_index),
+                    material::CookTorrance::new(Colour::WHITE, mat.roughness),
                     mat.refractive_index
                 )
             ),

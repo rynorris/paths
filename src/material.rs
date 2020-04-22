@@ -228,12 +228,11 @@ impl <DiffuseM, SpecularM> Material for FresnelCombination<DiffuseM, SpecularM>
 pub struct CookTorrance {
     roughness: f64,
     albedo: Colour,
-    refractive_index: f64,
 }
 
 impl CookTorrance {
-    pub fn new(albedo: Colour, roughness: f64, refractive_index: f64) -> CookTorrance {
-        CookTorrance { roughness,  albedo, refractive_index }
+    pub fn new(albedo: Colour, roughness: f64) -> CookTorrance {
+        CookTorrance { roughness,  albedo }
     }
 
     fn ndf(&self, n: Vector3, h: Vector3) -> f64 {
