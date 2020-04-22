@@ -16,17 +16,17 @@ pub trait Sampler : SamplerClone + Send + Sync {
 }
 
 pub trait SamplerClone {
-    fn clone_box(&self) -> Box<Sampler>;
+    fn clone_box(&self) -> Box<dyn Sampler>;
 }
 
 impl <T> SamplerClone for T where T: 'static + Sampler + Clone {
-    fn clone_box(&self) -> Box<Sampler> {
+    fn clone_box(&self) -> Box<dyn Sampler> {
         Box::new(self.clone())
     }
 }
 
-impl Clone for Box<Sampler> {
-    fn clone(&self) -> Box<Sampler> {
+impl Clone for Box<dyn Sampler> {
+    fn clone(&self) -> Box<dyn Sampler> {
         self.clone_box()
     }
 }

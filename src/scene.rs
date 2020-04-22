@@ -27,17 +27,17 @@ pub trait Skybox : SkyboxClone + Send + Sync {
 }
 
 pub trait SkyboxClone {
-    fn clone_box(&self) -> Box<Skybox>;
+    fn clone_box(&self) -> Box<dyn Skybox>;
 }
 
 impl <T> SkyboxClone for T where T: 'static + Skybox + Clone {
-    fn clone_box(&self) -> Box<Skybox> {
+    fn clone_box(&self) -> Box<dyn Skybox> {
         Box::new(self.clone())
     }
 }
 
-impl Clone for Box<Skybox> {
-    fn clone(&self) -> Box<Skybox> {
+impl Clone for Box<dyn Skybox> {
+    fn clone(&self) -> Box<dyn Skybox> {
         self.clone_box()
     }
 }
@@ -68,17 +68,17 @@ impl Skybox for GradientSky {
 
 pub struct Scene {
     pub camera: Camera,
-    pub skybox: Box<Skybox>,
+    pub skybox: Box<dyn Skybox>,
     bvh: BVH<Object>,
 }
 
 impl Scene {
-    pub fn new(camera: Camera, objects: Vec<Object>, skybox: Box<Skybox>) -> Scene {
+    pub fn new(camera: Camera, objects: Vec<Object>, skybox: Box<dyn Skybox>) -> Scene {
         let bvh = construct_bvh_aac(objects);
         Scene { camera, skybox, bvh }
     }
 
-    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Box<Material>)> {
+    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Box<dyn Material>)> {
         self.bvh.find_intersection(ray).map(|(col, obj)| (col, obj.material.clone()))
     }
 }

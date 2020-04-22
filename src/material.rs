@@ -14,17 +14,17 @@ pub trait Material : MaterialClone + Send + Sync + std::fmt::Debug {
 }
 
 pub trait MaterialClone {
-    fn clone_box(&self) -> Box<Material>;
+    fn clone_box(&self) -> Box<dyn Material>;
 }
 
 impl <T> MaterialClone for T where T: 'static + Material + Clone {
-    fn clone_box(&self) -> Box<Material> {
+    fn clone_box(&self) -> Box<dyn Material> {
         Box::new(self.clone())
     }
 }
 
-impl Clone for Box<Material> {
-    fn clone(&self) -> Box<Material> {
+impl Clone for Box<dyn Material> {
+    fn clone(&self) -> Box<dyn Material> {
         self.clone_box()
     }
 }
@@ -131,7 +131,7 @@ impl Gloss {
 }
 
 impl Material for Gloss {
-    fn weight_pdf(&self, vec_out: Vector3, _vec_in: Vector3, normal: Vector3) -> f64 {
+    fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> f64 {
         1.0
     }
 

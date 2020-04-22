@@ -69,7 +69,7 @@ impl SceneDescription {
 
         self.objects.iter().for_each(|o| {
             let material: Box<dyn material::Material> = (&o.material).into();
-            let shapes: Vec<Box<geom::Shape>> = match o.shape {
+            let shapes: Vec<Box<dyn geom::Shape>> = match o.shape {
                 ShapeDescription::Sphere(ref shp) => vec![Box::new(geom::Sphere{
                     center: shp.center.to_vector(),
                     radius: shp.radius,
@@ -78,9 +78,9 @@ impl SceneDescription {
                     println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
-                    let triangles: Vec<Box<geom::Shape>> = models.get(&shp.model).unwrap().iter()
+                    let triangles: Vec<Box<dyn geom::Shape>> = models.get(&shp.model).unwrap().iter()
                         .map(|t| t.transform(translation, rotation.clone(), shp.scale))
-                        .map(|t| Box::new(t) as Box<geom::Shape>)
+                        .map(|t| Box::new(t) as Box<dyn geom::Shape>)
                         .collect();
                     triangles
                 },
@@ -240,7 +240,7 @@ pub struct GradientSkyboxDescription {
 }
 
 impl SkyboxDescription {
-    pub fn to_skybox(&self) -> Box<scene::Skybox> {
+    pub fn to_skybox(&self) -> Box<dyn scene::Skybox> {
         match self {
             SkyboxDescription::Flat(sky) => Box::new(scene::FlatSky{ colour: sky.colour.to_colour() }),
             SkyboxDescription::Gradient(sky) => Box::new(scene::GradientSky{

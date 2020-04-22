@@ -41,7 +41,7 @@ impl Renderer {
             self.pool.execute(move|| {
                 for y in 0 .. camera.height {
                     let (ray, weight) = camera.get_ray_for_pixel(x, y);
-                    let colour = Renderer::trace_ray(&scene, ray, 0) * weight;
+                    let colour = Renderer::trace_ray(&scene, ray) * weight;
                     tx.send((x, y, colour)).expect("can send result back");
                 }
             });
@@ -63,7 +63,7 @@ impl Renderer {
         self.estimator = Estimator::new(self.scene.camera.width as usize, self.scene.camera.height as usize);
     }
 
-    fn trace_ray(scene: &Scene, mut ray: Ray, depth: u32) -> Colour {
+    fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
         let mut throughput = Colour::WHITE;
         let mut colour = Colour::BLACK;
         let mut loops = 0;
