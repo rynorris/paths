@@ -7,7 +7,7 @@ use crate::vector::Vector3;
 
 #[derive(Clone)]
 pub struct Object {
-    pub shape: Box<dyn Shape>,
+    pub shape: Shape,
     pub material: Material,
 }
 
