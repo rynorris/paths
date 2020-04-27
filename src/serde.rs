@@ -6,11 +6,11 @@ use crate::matrix::Matrix3;
 use crate::sampling::CorrelatedMultiJitteredSampler;
 use crate::vector::Vector3;
 use crate::geom;
-use crate::material;
+use crate::material::{BasicMaterial, Material};
 use crate::obj;
 use crate::scene;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct VectorDescription {
     pub x: f64,
     pub y: f64,
@@ -23,7 +23,7 @@ impl VectorDescription {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct ColourDescription {
     pub r: f64,
     pub g: f64,
@@ -36,7 +36,7 @@ impl ColourDescription {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct RotationDescription {
     pub pitch: f64,
     pub yaw: f64,
@@ -68,7 +68,7 @@ impl SceneDescription {
         });
 
         self.objects.iter().for_each(|o| {
-            let material: Box<dyn material::Material> = (&o.material).into();
+            let material: Material = (&o.material).into();
             let shapes: Vec<Box<dyn geom::Shape>> = match o.shape {
                 ShapeDescription::Sphere(ref shp) => vec![Box::new(geom::Sphere{
                     center: shp.center.to_vector(),
@@ -94,7 +94,7 @@ impl SceneDescription {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct CameraDescription {
     pub image_width: u32,
     pub image_height: u32,
@@ -146,7 +146,7 @@ pub enum ShapeDescription {
     Mesh(MeshDescription),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct SphereDescription {
     pub center: VectorDescription,
     pub radius: f64,
@@ -160,7 +160,7 @@ pub struct MeshDescription {
     pub scale: f64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum MaterialDescription {
     Lambertian(LambertianMaterialDescription),
@@ -170,70 +170,83 @@ pub enum MaterialDescription {
     Fresnel(FresnelMaterialDescription),
 }
 
-impl From<&MaterialDescription> for Box<dyn material::Material> {
-    fn from(desc: &MaterialDescription) -> Box<dyn material::Material> {
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum BasicMaterialDescription {
+    Lambertian(LambertianMaterialDescription),
+    Gloss(GlossMaterialDescription),
+    Mirror(MirrorMaterialDescription),
+    CookTorrance(CookTorranceMaterialDescription),
+}
+
+impl From<&MaterialDescription> for Material {
+    fn from(desc: &MaterialDescription) -> Material {
         match desc {
-            MaterialDescription::Lambertian(mat) => Box::new(material::Lambertian::new(mat.albedo.to_colour(), Colour::BLACK)),
-            MaterialDescription::Gloss(mat) => Box::new(material::Gloss::new(mat.albedo.to_colour(), mat.reflectance)),
-            MaterialDescription::Mirror(_mat) => Box::new(material::Mirror{}),
-            MaterialDescription::CookTorrance(mat) => Box::new(material::CookTorrance::new(mat.albedo.to_colour(), mat.roughness)),
-            MaterialDescription::Fresnel(mat) => Box::new(
-                material::FresnelCombination::new(
-                    mat.diffuse.clone().into(),
-                    mat.specular.clone().into(),
+            MaterialDescription::Lambertian(mat) => Material::lambertian(mat.albedo.to_colour(), Colour::BLACK),
+            MaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance),
+            MaterialDescription::Mirror(_mat) => Material::mirror(),
+            MaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness),
+            MaterialDescription::Fresnel(mat) => 
+                Material::fresnel_combination(
+                    mat.diffuse.into(),
+                    mat.specular.into(),
                     mat.refractive_index
-                )
-            ),
+                ),
         }
     }
 }
 
-impl From<Box<MaterialDescription>> for Box<dyn material::Material> {
-    fn from(desc: Box<MaterialDescription>) -> Box<dyn material::Material> {
-        desc.as_ref().into()
+impl From<BasicMaterialDescription> for BasicMaterial {
+    fn from(desc: BasicMaterialDescription) -> BasicMaterial {
+        match desc {
+            BasicMaterialDescription::Lambertian(mat) => Material::lambertian(mat.albedo.to_colour(), Colour::BLACK).to_basic(),
+            BasicMaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance).to_basic(),
+            BasicMaterialDescription::Mirror(_mat) => Material::mirror().to_basic(),
+            BasicMaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness).to_basic(),
+        }
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct LambertianMaterialDescription {
     pub albedo: ColourDescription,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct GlossMaterialDescription {
     pub albedo: ColourDescription,
     pub reflectance: f64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct MirrorMaterialDescription {}
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct CookTorranceMaterialDescription {
     pub albedo: ColourDescription,
     pub roughness: f64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct FresnelMaterialDescription {
     pub refractive_index: f64,
-    pub diffuse: Box<MaterialDescription>,
-    pub specular: Box<MaterialDescription>,
+    pub diffuse: BasicMaterialDescription,
+    pub specular: BasicMaterialDescription,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum SkyboxDescription {
     Flat(FlatSkyboxDescription),
     Gradient(GradientSkyboxDescription),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct FlatSkyboxDescription {
     pub colour: ColourDescription,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct GradientSkyboxDescription {
     pub overhead_colour: ColourDescription,
     pub horizon_colour: ColourDescription,

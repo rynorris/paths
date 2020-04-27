@@ -8,7 +8,7 @@ use crate::vector::Vector3;
 #[derive(Clone)]
 pub struct Object {
     pub shape: Box<dyn Shape>,
-    pub material: Box<dyn Material>,
+    pub material: Material,
 }
 
 impl BoundedVolume for Object {
@@ -78,7 +78,7 @@ impl Scene {
         Scene { camera, skybox, bvh }
     }
 
-    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Box<dyn Material>)> {
-        self.bvh.find_intersection(ray).map(|(col, obj)| (col, obj.material.clone()))
+    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Material)> {
+        self.bvh.find_intersection(ray).map(|(col, obj)| (col, obj.material))
     }
 }
