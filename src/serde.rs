@@ -253,13 +253,13 @@ pub struct GradientSkyboxDescription {
 }
 
 impl SkyboxDescription {
-    pub fn to_skybox(&self) -> Box<dyn scene::Skybox> {
+    pub fn to_skybox(&self) -> scene::Skybox {
         match self {
-            SkyboxDescription::Flat(sky) => Box::new(scene::FlatSky{ colour: sky.colour.to_colour() }),
-            SkyboxDescription::Gradient(sky) => Box::new(scene::GradientSky{
-                overhead_colour: sky.overhead_colour.to_colour(),
-                horizon_colour: sky.horizon_colour.to_colour(),
-            }),
+            SkyboxDescription::Flat(sky) => scene::Skybox::flat(sky.colour.to_colour()),
+            SkyboxDescription::Gradient(sky) => scene::Skybox::gradient(
+                sky.overhead_colour.to_colour(),
+                sky.horizon_colour.to_colour(),
+            ),
         }
     }
 }
