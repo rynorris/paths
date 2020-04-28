@@ -149,7 +149,7 @@ mod test {
     fn test_face() {
         assert_eq!(
             face(CompleteStr("f 43 1 562")),
-            Ok((CompleteStr(""), (43, 1, 562))));
+            Ok((CompleteStr(""), (42, 0, 561))));
     }
 
     #[test]
@@ -168,9 +168,9 @@ mod test {
         assert_eq!(
             faces(CompleteStr("f 1 2 3\nf 4 5 6\nf 7 8 9\n")),
             Ok((CompleteStr(""), vec![
-               (1, 2, 3),
-               (4, 5, 6),
-               (7, 8, 9),
+               (0, 1, 2),
+               (3, 4, 5),
+               (6, 7, 8),
             ])));
     }
 
@@ -182,8 +182,8 @@ mod test {
         assert_eq!(teapot.vertices[3643], Vector3::new(3.434, 2.4729, 0.0));
 
         assert_eq!(teapot.faces.len(), 6320);
-        assert_eq!(teapot.faces[0], (2909, 2921, 2939));
-        assert_eq!(teapot.faces[6319], (3001, 3004, 3022));
+        assert_eq!(teapot.faces[0], (2908, 2920, 2938));
+        assert_eq!(teapot.faces[6319], (3000, 3003, 3021));
     }
 
     fn parse_obj_file(name: &str) -> Model {
