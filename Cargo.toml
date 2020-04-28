@@ -15,3 +15,6 @@ serde_yaml = "0.8"
 
 [profile.dev]
 opt-level = 3
+
+[profile.release]
+debug = true

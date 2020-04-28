@@ -6,46 +6,149 @@ use rand::Rng;
 use crate::colour::Colour;
 use crate::vector::Vector3;
 
-pub trait Material : MaterialClone + Send + Sync + std::fmt::Debug {
+
+trait MaterialInterface {
     fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64;
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3;
     fn emittance(&self, vec_out: Vector3, cos_out: f64) -> Colour;
     fn brdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour;
 }
 
-pub trait MaterialClone {
-    fn clone_box(&self) -> Box<dyn Material>;
-}
 
-impl <T> MaterialClone for T where T: 'static + Material + Clone {
-    fn clone_box(&self) -> Box<dyn Material> {
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<dyn Material> {
-    fn clone(&self) -> Box<dyn Material> {
-        self.clone_box()
-    }
-}
-
-fn to_basis(v: Vector3, i: Vector3, j: Vector3, k: Vector3) -> Vector3 {
-    i* v.x + j * v.y + k * v.z
+#[derive(Clone, Copy, Debug)]
+pub enum Material {
+    Lambertian(LambertianMaterial),
+    Mirror(MirrorMaterial),
+    Gloss(GlossMaterial),
+    CookTorrance(CookTorranceMaterial),
+    FresnelCombination(FresnelCombinationMaterial),
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Lambertian {
+pub enum BasicMaterial {
+    Lambertian(LambertianMaterial),
+    Mirror(MirrorMaterial),
+    Gloss(GlossMaterial),
+    CookTorrance(CookTorranceMaterial),
+}
+
+impl Material {
+    pub fn to_basic(self) -> BasicMaterial {
+        match self {
+            Material::Lambertian(mat) => BasicMaterial::Lambertian(mat),
+            Material::Mirror(mat) => BasicMaterial::Mirror(mat),
+            Material::Gloss(mat) => BasicMaterial::Gloss(mat),
+            Material::CookTorrance(mat) => BasicMaterial::CookTorrance(mat),
+            Material::FresnelCombination(_) => panic!("FresnelCombination material cannot be downcast to BasicMaterial"),
+        }
+    }
+
+    pub fn lambertian(albedo: Colour, emittance: Colour) -> Material {
+        Material::Lambertian(LambertianMaterial{ albedo, emittance })
+    }
+
+    pub fn mirror() -> Material {
+        Material::Mirror(MirrorMaterial{})
+    }
+
+    pub fn gloss(albedo: Colour, reflectance: f64) -> Material {
+        Material::Gloss(GlossMaterial::new(albedo, reflectance))
+    }
+
+    pub fn cook_torrance(albedo: Colour, roughness: f64) -> Material {
+        Material::CookTorrance(CookTorranceMaterial { roughness,  albedo })
+    }
+
+    pub fn fresnel_combination(diffuse: BasicMaterial, specular: BasicMaterial, refractive_index: f64) -> Material {
+        Material::FresnelCombination(FresnelCombinationMaterial::new(diffuse, specular, refractive_index))
+    }
+
+    pub fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
+        match self {
+            Material::Lambertian(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+            Material::Mirror(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+            Material::Gloss(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+            Material::CookTorrance(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+            Material::FresnelCombination(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+        }
+    }
+
+    pub fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
+        match self {
+            Material::Lambertian(mat) => mat.sample_pdf(vec_out, normal),
+            Material::Mirror(mat) => mat.sample_pdf(vec_out, normal),
+            Material::Gloss(mat) => mat.sample_pdf(vec_out, normal),
+            Material::CookTorrance(mat) => mat.sample_pdf(vec_out, normal),
+            Material::FresnelCombination(mat) => mat.sample_pdf(vec_out, normal),
+        }
+    }
+
+    pub fn emittance(&self, vec_out: Vector3, cos_out: f64) -> Colour {
+        match self {
+            Material::Lambertian(mat) => mat.emittance(vec_out, cos_out),
+            Material::Mirror(mat) => mat.emittance(vec_out, cos_out),
+            Material::Gloss(mat) => mat.emittance(vec_out, cos_out),
+            Material::CookTorrance(mat) => mat.emittance(vec_out, cos_out),
+            Material::FresnelCombination(mat) => mat.emittance(vec_out, cos_out),
+        }
+    }
+
+    pub fn brdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
+        match self {
+            Material::Lambertian(mat) => mat.brdf(vec_out, vec_in, normal),
+            Material::Mirror(mat) => mat.brdf(vec_out, vec_in, normal),
+            Material::Gloss(mat) => mat.brdf(vec_out, vec_in, normal),
+            Material::CookTorrance(mat) => mat.brdf(vec_out, vec_in, normal),
+            Material::FresnelCombination(mat) => mat.brdf(vec_out, vec_in, normal),
+        }
+    }
+}
+
+impl BasicMaterial {
+    fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
+        match self {
+            BasicMaterial::Lambertian(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+            BasicMaterial::Mirror(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+            BasicMaterial::Gloss(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+            BasicMaterial::CookTorrance(mat) => mat.weight_pdf(vec_out, vec_in, normal),
+        }
+    }
+
+    fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
+        match self {
+            BasicMaterial::Lambertian(mat) => mat.sample_pdf(vec_out, normal),
+            BasicMaterial::Mirror(mat) => mat.sample_pdf(vec_out, normal),
+            BasicMaterial::Gloss(mat) => mat.sample_pdf(vec_out, normal),
+            BasicMaterial::CookTorrance(mat) => mat.sample_pdf(vec_out, normal),
+        }
+    }
+
+    fn emittance(&self, vec_out: Vector3, cos_out: f64) -> Colour {
+        match self {
+            BasicMaterial::Lambertian(mat) => mat.emittance(vec_out, cos_out),
+            BasicMaterial::Mirror(mat) => mat.emittance(vec_out, cos_out),
+            BasicMaterial::Gloss(mat) => mat.emittance(vec_out, cos_out),
+            BasicMaterial::CookTorrance(mat) => mat.emittance(vec_out, cos_out),
+        }
+    }
+
+    fn brdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
+        match self {
+            BasicMaterial::Lambertian(mat) => mat.brdf(vec_out, vec_in, normal),
+            BasicMaterial::Mirror(mat) => mat.brdf(vec_out, vec_in, normal),
+            BasicMaterial::Gloss(mat) => mat.brdf(vec_out, vec_in, normal),
+            BasicMaterial::CookTorrance(mat) => mat.brdf(vec_out, vec_in, normal),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct LambertianMaterial {
     albedo: Colour,
     emittance: Colour,
 }
 
-impl Lambertian {
-    pub fn new(albedo: Colour, emittance: Colour) -> Lambertian {
-        Lambertian{ albedo, emittance }
-    }
-}
-
-impl Material for Lambertian {
+impl MaterialInterface for LambertianMaterial {
     fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> f64 {
         1.0
     }
@@ -82,21 +185,21 @@ impl Material for Lambertian {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Mirror {}
+pub struct MirrorMaterial {}
 
-impl Mirror {
+impl MirrorMaterial {
     fn reflect(vector: Vector3, normal: Vector3) -> Vector3 {
         ((normal * normal.dot(vector) * 2) - vector).normed()
     }
 }
 
-impl Material for Mirror {
+impl MaterialInterface for MirrorMaterial {
     fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> f64 {
         1.0
     }
 
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
-        Mirror::reflect(vec_out, normal)
+        MirrorMaterial::reflect(vec_out, normal)
     }
 
     fn emittance(&self, _vec_out: Vector3, _cos_out: f64) -> Colour {
@@ -109,28 +212,28 @@ impl Material for Mirror {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Gloss {
-    lambertian: Lambertian,
-    mirror: Mirror,
+pub struct GlossMaterial {
+    lambertian: LambertianMaterial,
+    mirror: MirrorMaterial,
     fresnel_r0: f64,
 }
 
-impl Gloss {
-    pub fn new(albedo: Colour, reflectance: f64) -> Gloss {
+impl GlossMaterial {
+    pub fn new(albedo: Colour, reflectance: f64) -> GlossMaterial {
         let n1: f64 = 1.0;  // Air
         let n2: f64 = reflectance;
 
         // Schlick's approximation for the fresnel factor.
         let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
-        Gloss {
-            lambertian: Lambertian{ albedo, emittance: Colour::BLACK },
-            mirror: Mirror{},
+        GlossMaterial {
+            lambertian: LambertianMaterial{ albedo, emittance: Colour::BLACK },
+            mirror: MirrorMaterial{},
             fresnel_r0: r0,
         }
     }
 }
 
-impl Material for Gloss {
+impl MaterialInterface for GlossMaterial {
     fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> f64 {
         1.0
     }
@@ -161,21 +264,21 @@ impl Material for Gloss {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct FresnelCombination {
-    diffuse: Box<dyn Material>,
-    specular: Box<dyn Material>,
+#[derive(Clone, Copy, Debug)]
+pub struct FresnelCombinationMaterial {
+    diffuse: BasicMaterial,
+    specular: BasicMaterial,
     fresnel_r0: f64,
 }
 
-impl FresnelCombination {
-    pub fn new(diffuse: Box<dyn Material>, specular: Box<dyn Material>, refractive_index: f64) -> FresnelCombination {
+impl FresnelCombinationMaterial {
+    pub fn new(diffuse: BasicMaterial, specular: BasicMaterial, refractive_index: f64) -> FresnelCombinationMaterial {
         // Schlick's approximation for the fresnel factor.
         let n1: f64 = 1.0;  // Air
         let n2: f64 = refractive_index;
         let fresnel_r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
 
-        FresnelCombination { diffuse, specular, fresnel_r0 }
+        FresnelCombinationMaterial { diffuse, specular, fresnel_r0 }
     }
 
     fn fresnel_weight(&self, vec_out: Vector3, normal: Vector3) -> f64 {
@@ -185,7 +288,7 @@ impl FresnelCombination {
     }
 }
 
-impl Material for FresnelCombination {
+impl MaterialInterface for FresnelCombinationMaterial {
     fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
         let r = self.fresnel_weight(vec_out, normal);
         let diffuse_weight = self.diffuse.weight_pdf(vec_out, vec_in, normal);
@@ -219,16 +322,12 @@ impl Material for FresnelCombination {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct CookTorrance {
+pub struct CookTorranceMaterial {
     roughness: f64,
     albedo: Colour,
 }
 
-impl CookTorrance {
-    pub fn new(albedo: Colour, roughness: f64) -> CookTorrance {
-        CookTorrance { roughness,  albedo }
-    }
-
+impl CookTorranceMaterial {
     fn ndf(&self, n: Vector3, h: Vector3) -> f64 {
         // Beckmann NDF.
         let alpha = h.dot(n).acos();
@@ -242,7 +341,7 @@ impl CookTorrance {
     }
 }
 
-impl Material for CookTorrance {
+impl MaterialInterface for CookTorranceMaterial {
     fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
         let h = (vec_out - vec_in).normed();
         let d = self.ndf(normal, h);
@@ -290,7 +389,7 @@ impl Material for CookTorrance {
             panic!();
         }
 
-        Mirror::reflect(vec_out, world_facet_normal)
+        MirrorMaterial::reflect(vec_out, world_facet_normal)
     }
 
     fn emittance(&self, _vec_out: Vector3, _cos_out: f64) -> Colour {
@@ -316,5 +415,9 @@ impl Material for CookTorrance {
         // Specular component.
         self.albedo * (d * g) / (4.0 * ndv * ndl)
     }
+}
+
+fn to_basis(v: Vector3, i: Vector3, j: Vector3, k: Vector3) -> Vector3 {
+    i* v.x + j * v.y + k * v.z
 }
 

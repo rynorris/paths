@@ -51,33 +51,61 @@ pub trait BoundedVolume {
     fn intersect(&self, ray: Ray) -> Option<Collision>;
 }
 
-pub trait Shape : BoundedVolume + ShapeClone + Send + Sync {}
-
-impl <T : 'static + BoundedVolume + Clone + Send + Sync> Shape for T {}
-
-pub trait ShapeClone {
-    fn clone_box(&self) -> Box<dyn Shape>;
+#[derive(Clone, Copy, Debug)]
+pub enum Shape {
+    Sphere(SphereShape),
+    Triangle(TriangleShape),
 }
 
-impl <T> ShapeClone for T where T: 'static + Shape + Clone {
-    fn clone_box(&self) -> Box<dyn Shape> {
-        Box::new(self.clone())
+impl Shape {
+    pub fn sphere(center: Vector3, radius: f64) -> Shape {
+        Shape::Sphere(SphereShape{ center, radius })
+    }
+
+    pub fn triangle(vertices: [Vector3; 3], surface_normal: Vector3, vertex_normals: [Vector3; 3]) -> Shape {
+        Shape::Triangle(TriangleShape{ vertices, surface_normal, vertex_normals })
+    }
+
+    pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> Shape {
+        match self {
+            Shape::Sphere(sphere) => Shape::Sphere(sphere.transform(translation, rotation, scale)),
+            Shape::Triangle(triangle) => Shape::Triangle(triangle.transform(translation, rotation, scale)),
+        }
     }
 }
 
-impl Clone for Box<dyn Shape> {
-    fn clone(&self) -> Box<dyn Shape> {
-        self.clone_box()
+impl BoundedVolume for Shape {
+    fn aabb(&self) -> AABB {
+        match self {
+            Shape::Sphere(sphere) => sphere.aabb(),
+            Shape::Triangle(triangle) => triangle.aabb(),
+        }
+    }
+
+    fn intersect(&self, ray: Ray) -> Option<Collision> {
+        match self {
+            Shape::Sphere(sphere) => sphere.intersect(ray),
+            Shape::Triangle(triangle) => triangle.intersect(ray),
+        }
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Sphere {
+pub struct SphereShape {
     pub center: Vector3,
     pub radius: f64,
 }
 
-impl BoundedVolume for Sphere {
+impl SphereShape {
+    pub fn transform(&self, translation: Vector3, _: Matrix3, scale: f64) -> SphereShape {
+        SphereShape {
+            center: self.center + translation,
+            radius: self.radius * scale,
+        }
+    }
+}
+
+impl BoundedVolume for SphereShape {
     fn intersect(&self, ray: Ray) -> Option<Collision> {
         let c = self.center;
         let r = self.radius;
@@ -113,31 +141,31 @@ impl BoundedVolume for Sphere {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Triangle {
+pub struct TriangleShape {
     pub vertices: [Vector3; 3],
     pub surface_normal: Vector3,
     pub vertex_normals: [Vector3; 3],
 }
 
-impl Triangle {
-    pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> Triangle {
-        Triangle {
+impl TriangleShape {
+    pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> TriangleShape {
+        TriangleShape {
             vertices: [
-                rotation.clone() * self.vertices[0] * scale + translation,
-                rotation.clone() * self.vertices[1] * scale + translation,
-                rotation.clone() * self.vertices[2] * scale + translation,
+                rotation * self.vertices[0] * scale + translation,
+                rotation * self.vertices[1] * scale + translation,
+                rotation * self.vertices[2] * scale + translation,
             ],
             surface_normal: rotation.clone() * self.surface_normal,
             vertex_normals: [
-                rotation.clone() * self.vertex_normals[0],
-                rotation.clone() * self.vertex_normals[1],
-                rotation.clone() * self.vertex_normals[2],
+                rotation * self.vertex_normals[0],
+                rotation * self.vertex_normals[1],
+                rotation * self.vertex_normals[2],
             ],
         }
     }
 }
 
-impl BoundedVolume for Triangle {
+impl BoundedVolume for TriangleShape {
     fn intersect(&self, ray: Ray) -> Option<Collision> {
         let a = self.vertices[0];
         let b = self.vertices[1];
