@@ -11,12 +11,16 @@ pub struct Ray {
     pub origin: Vector3,
     pub direction: Vector3,
     pub inv_direction: Vector3,
+    pub sign: [bool; 3],
 }
 
 impl Ray {
     pub fn new(origin: Vector3, direction: Vector3) -> Ray {
         Ray {
-            origin, direction, inv_direction: direction.invert()
+            origin,
+            direction,
+            inv_direction: direction.invert(),
+            sign: [direction.x >= 0.0, direction.y >= 0.0, direction.z >= 0.0],
         }
     }
 
