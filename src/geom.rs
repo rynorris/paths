@@ -151,15 +151,15 @@ impl TriangleShape {
     pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> TriangleShape {
         TriangleShape {
             vertices: [
-                rotation.clone() * self.vertices[0] * scale + translation,
-                rotation.clone() * self.vertices[1] * scale + translation,
-                rotation.clone() * self.vertices[2] * scale + translation,
+                rotation * self.vertices[0] * scale + translation,
+                rotation * self.vertices[1] * scale + translation,
+                rotation * self.vertices[2] * scale + translation,
             ],
             surface_normal: rotation.clone() * self.surface_normal,
             vertex_normals: [
-                rotation.clone() * self.vertex_normals[0],
-                rotation.clone() * self.vertex_normals[1],
-                rotation.clone() * self.vertex_normals[2],
+                rotation * self.vertex_normals[0],
+                rotation * self.vertex_normals[1],
+                rotation * self.vertex_normals[2],
             ],
         }
     }
