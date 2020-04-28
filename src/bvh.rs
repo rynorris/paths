@@ -76,7 +76,8 @@ pub struct BVH<T> {
 
 impl <T : BoundedVolume> BVH<T> {
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, &T)> {
-        let mut stack: Vec<&Node> = Vec::with_capacity(100);
+        let mut stack: [Option<&Node>; 100] = [None; 100];
+        let mut stack_ptr: usize = 0;
 
         let mut node = if let Some(_) = ray_box_collide(&ray, &self.root.aabb(), None) {
             &self.root
@@ -101,7 +102,12 @@ impl <T : BoundedVolume> BVH<T> {
                             None => Some((col, &self.items[leaf.obj])),
                         };
                     }
-                    if stack.is_empty() { break; } else { node = stack.pop().expect("Stack is not empty") }
+                    if stack_ptr == 0 {
+                        break;
+                    } else {
+                        stack_ptr -= 1;
+                        node = stack[stack_ptr].expect("Stack entry is not None");
+                    }
                 },
                 Node::Cluster(clus) => {
                     let left_col = ray_box_collide(&ray, &clus.left.aabb(), closest_collision.map(|(best, _)| best.distance));
@@ -109,16 +115,23 @@ impl <T : BoundedVolume> BVH<T> {
                     match (left_col, right_col) {
                         (Some(ld), Some(rd)) => {
                             if ld < rd {
-                                stack.push(&clus.right);
+                                stack[stack_ptr] = Some(&clus.right);
+                                stack_ptr += 1;
                                 node = &clus.left;
                             } else {
-                                stack.push(&clus.left);
+                                stack[stack_ptr] = Some(&clus.left);
+                                stack_ptr += 1;
                                 node = &clus.right;
                             }
                         },
                         (Some(_), None) => node = &clus.left,
                         (None, Some(_)) => node = &clus.right,
-                        (None, None) => if stack.is_empty() { break; } else { node = stack.pop().expect("Stack is not empty") }
+                        (None, None) => if stack_ptr == 0 {
+                            break;
+                        } else {
+                            stack_ptr -= 1;
+                            node = stack[stack_ptr].expect("Stack entry is not None");
+                        }
                     }
                 },
             }
