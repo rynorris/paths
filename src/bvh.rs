@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
 use std::time::Instant;
 
 use crate::geom::{AABB, BoundedVolume, Collision, Ray};
@@ -7,7 +6,7 @@ use crate::vector::Vector3;
 
 
 // Ray-box collision algorithm taken from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
-fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
+fn ray_box_collide(ray: &Ray, aabb: &AABB, len: Option<f64>) -> Option<f64> {
     let t0s = (aabb.min - ray.origin) * ray.inv_direction;
     let t1s = (aabb.max - ray.origin) * ray.inv_direction;
     let tsmaller = Vector3::componentwise_min(t0s, t1s);
@@ -15,15 +14,19 @@ fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
     let tmin = tsmaller.max();
     let tmax = tbigger.min();
 
-    if tmin < tmax { Some(tmin) } else { None }
+    if tmin < tmax && len.map_or(true, |d| tmin < d) { 
+        Some(tmin)
+    } else {
+        None
+    }
 }
 
-enum Node<T> {
-    Leaf(LeafNode<T>),
-    Cluster(ClusterNode<T>),
+enum Node {
+    Leaf(LeafNode),
+    Cluster(ClusterNode),
 }
 
-impl <T> Node<T> {
+impl Node {
     pub fn aabb(&self) -> &AABB {
         match self {
             Node::Leaf(leaf) => &leaf.aabb,
@@ -32,26 +35,25 @@ impl <T> Node<T> {
     }
 }
 
-struct LeafNode<T> {
-    obj: T,
+struct LeafNode {
+    obj: usize,
     aabb: AABB,
 }
 
-impl <T : BoundedVolume> LeafNode<T> {
-    fn new(obj: T) -> LeafNode<T> {
-        let aabb = obj.aabb();
+impl LeafNode {
+    fn new(obj: usize, aabb: AABB) -> LeafNode {
         LeafNode { obj, aabb }
     }
 }
 
-struct ClusterNode<T> {
-    left: Box<Node<T>>,
-    right: Box<Node<T>>,
+struct ClusterNode {
+    left: Box<Node>,
+    right: Box<Node>,
     aabb: AABB,
 }
 
-impl <T : BoundedVolume> ClusterNode<T> {
-    fn new(left: Box<Node<T>>, right: Box<Node<T>>) -> ClusterNode<T> {
+impl ClusterNode {
+    fn new(left: Box<Node>, right: Box<Node>) -> ClusterNode {
         let aabb1 = match left.as_ref() {
             Node::Leaf(leaf) => &leaf.aabb,
             Node::Cluster(clus) => &clus.aabb,
@@ -68,46 +70,67 @@ impl <T : BoundedVolume> ClusterNode<T> {
 }
 
 pub struct BVH<T> {
-    root: Node<T>
+    items: Vec<T>,
+    root: Node,
 }
 
 impl <T : BoundedVolume> BVH<T> {
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, &T)> {
-        let mut q: BinaryHeap<SearchNode<T>> = BinaryHeap::with_capacity(100);
+        let mut stack: [Option<&Node>; 100] = [None; 100];
+        let mut stack_ptr: usize = 0;
 
-        if let Some(distance) = ray_box_collide(&ray, &self.root.aabb()) {
-            q.push(SearchNode{ node: &self.root, distance });
-        }
+        let mut node = if let Some(_) = ray_box_collide(&ray, &self.root.aabb(), None) {
+            &self.root
+        } else {
+            return None;
+        };
 
         let mut closest_collision: Option<(Collision, &T)> = None;
 
-        while !q.is_empty() {
-            let sn = q.pop().expect("Queue is not empty");
-            match sn.node {
+        loop {
+            match node {
                 Node::Leaf(ref leaf) => {
-                    if let Some(col) = leaf.obj.intersect(ray) {
+                    if let Some(col) = self.items[leaf.obj].intersect(ray) {
                         closest_collision = match closest_collision {
                             Some((best, o)) =>  {
                                 if col.distance < best.distance {
-                                    Some((col, &leaf.obj))
+                                    Some((col, &self.items[leaf.obj]))
                                 } else {
                                     Some((best, o))
                                 }
                             },
-                            None => Some((col, &leaf.obj)),
+                            None => Some((col, &self.items[leaf.obj])),
                         };
+                    }
+                    if stack_ptr == 0 {
+                        break;
+                    } else {
+                        stack_ptr -= 1;
+                        node = stack[stack_ptr].expect("Stack entry is not None");
                     }
                 },
                 Node::Cluster(clus) => {
-                    if let Some(distance) = ray_box_collide(&ray, &clus.left.aabb()) {
-                        if closest_collision.map_or(true, |(best, _)| distance <= best.distance) {
-                            q.push(SearchNode{ node: &clus.left, distance });
-                        }
-                    }
-
-                    if let Some(distance) = ray_box_collide(&ray, &clus.right.aabb()) {
-                        if closest_collision.map_or(true, |(best, _)| distance <= best.distance) {
-                            q.push(SearchNode{ node: &clus.right, distance });
+                    let left_col = ray_box_collide(&ray, &clus.left.aabb(), closest_collision.map(|(best, _)| best.distance));
+                    let right_col = ray_box_collide(&ray, &clus.right.aabb(), closest_collision.map(|(best, _)| best.distance));
+                    match (left_col, right_col) {
+                        (Some(ld), Some(rd)) => {
+                            if ld < rd {
+                                stack[stack_ptr] = Some(&clus.right);
+                                stack_ptr += 1;
+                                node = &clus.left;
+                            } else {
+                                stack[stack_ptr] = Some(&clus.left);
+                                stack_ptr += 1;
+                                node = &clus.right;
+                            }
+                        },
+                        (Some(_), None) => node = &clus.left,
+                        (None, Some(_)) => node = &clus.right,
+                        (None, None) => if stack_ptr == 0 {
+                            break;
+                        } else {
+                            stack_ptr -= 1;
+                            node = stack[stack_ptr].expect("Stack entry is not None");
                         }
                     }
                 },
@@ -116,39 +139,6 @@ impl <T : BoundedVolume> BVH<T> {
         closest_collision
     }
 }
-
-struct SearchNode<'a, T : BoundedVolume> {
-    node: &'a Node<T>,
-    distance: f64,
-}
-
-impl <'a, T : BoundedVolume> Ord for SearchNode<'a, T> {
-
-    // Reversed ordering so that our BinaryHeap becomes a min heap.
-    fn cmp(&self, other: &SearchNode<T>) -> Ordering {
-        if self.distance < other.distance {
-            Ordering::Greater
-        } else if self.distance > other.distance {
-            Ordering::Less
-        } else {
-            Ordering::Equal
-        }
-    }
-}
-
-impl <'a, T : BoundedVolume> PartialOrd for SearchNode<'a, T> {
-    fn partial_cmp(&self, other: &SearchNode<T>) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl <'a, T : BoundedVolume> PartialEq for SearchNode<'a, T> {
-    fn eq(&self, other: &SearchNode<T>) -> bool {
-        self.distance == other.distance
-    }
-}
-
-impl <'a, T : BoundedVolume> Eq for SearchNode<'a, T> {}
 
 // This algorithm for constructing the BVH taken from http://graphics.cs.cmu.edu/projects/aac/aac_build.pdf
 // Note that the authors of this paper made several optimizations to get the reported construction speed.
@@ -167,11 +157,11 @@ fn ccrf(x: usize) -> usize {
     (c * xf.powf(0.5 - EPSILON)).ceil() as usize
 }
 
-pub fn construct_bvh_aac<T : BoundedVolume>(mut objects: Vec<T>) -> BVH<T> {
+pub fn construct_bvh_aac<T : BoundedVolume>(objects: Vec<T>) -> BVH<T> {
     let start_time = Instant::now();
     println!("[{:.2?}] Constructing BVH from {:?} objects", start_time.elapsed(), objects.len());
 
-    let mut nodes: Vec<Node<T>> = objects.drain(..).map(|o| Node::Leaf(LeafNode::new(o))).collect();
+    let mut nodes: Vec<Node> = objects.iter().enumerate().map(|(ix, o)| Node::Leaf(LeafNode::new(ix, o.aabb()))).collect();
     let num_bits = (nodes.len() as f64).log(4.0).ceil() as u16;
     if num_bits > 16 { panic!("Too many objects to construct BVH"); }
 
@@ -186,7 +176,7 @@ pub fn construct_bvh_aac<T : BoundedVolume>(mut objects: Vec<T>) -> BVH<T> {
         .fold(0./0., f64::max);  // Hack to get max for floats.
     let scale = cap / max;
 
-    let mut nodes_with_mc: Vec<(Node<T>, u64)> = nodes.drain(..).map(|n| {
+    let mut nodes_with_mc: Vec<(Node, u64)> = nodes.drain(..).map(|n| {
         let c = n.aabb().center;
         let mc = morton_code(num_bits, (c.x * scale) as u16, (c.y * scale) as u16, (c.z * scale) as u16);
         (n, mc)
@@ -197,20 +187,20 @@ pub fn construct_bvh_aac<T : BoundedVolume>(mut objects: Vec<T>) -> BVH<T> {
 
     println!("[{:.2?}] Recursively constructing hierarchy", start_time.elapsed());
 
-    let clusters: Vec<Node<T>> = build_tree(nodes_with_mc, num_bits, 0);
+    let clusters: Vec<Node> = build_tree(nodes_with_mc, num_bits, 0);
 
     println!("[{:.2?}] Combining final clusters", start_time.elapsed());
 
-    let mut final_clusters: Vec<Node<T>> = combine_clusters(clusters, 1);
+    let mut final_clusters: Vec<Node> = combine_clusters(clusters, 1);
 
     let root = final_clusters.pop().expect("Must have at least one cluster");
 
     println!("[{:.2?}] Finished constructing BVH", start_time.elapsed());
 
-    BVH { root }
+    BVH { items: objects, root }
 }
 
-fn build_tree<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, max_depth: u16, depth: u16) -> Vec<Node<T>> {
+fn build_tree(mut clusters: Vec<(Node, u64)>, max_depth: u16, depth: u16) -> Vec<Node> {
     let num_clusters = clusters.len();
     if num_clusters < DELTA {
         return combine_clusters(clusters.drain(..).map(|(n, _)| n).collect(), ccrf(DELTA));
@@ -230,7 +220,7 @@ fn build_tree<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, max_depth: u
     combine_clusters(new_clusters, ccrf(num_clusters))
 }
 
-fn make_partition<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, depth: u16) -> (Vec<(Node<T>, u64)>, Vec<(Node<T>, u64)>) {
+fn make_partition(mut clusters: Vec<(Node, u64)>, depth: u16) -> (Vec<(Node, u64)>, Vec<(Node, u64)>) {
     // Partition based on the current bit of the morton code.
     // Since the clusters are sorted, we can just binary search for where this bit changes from 0
     // to 1.
@@ -259,7 +249,7 @@ fn make_partition<T : BoundedVolume>(mut clusters: Vec<(Node<T>, u64)>, depth: u
     (clusters, rhs)
 }
 
-fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> Vec<Node<T>> {
+fn combine_clusters(mut clusters: Vec<Node>, n: usize) -> Vec<Node> {
     // Lookup table from cluster index to index of "closest" cluster.
     let mut closest: Vec<usize> = Vec::with_capacity(clusters.len());
 
@@ -309,7 +299,7 @@ fn combine_clusters<T : BoundedVolume>(mut clusters: Vec<Node<T>>, n: usize) -> 
     clusters
 }
 
-fn find_best_match<T : BoundedVolume>(clusters: &Vec<Node<T>>, ix: usize) -> usize {
+fn find_best_match(clusters: &Vec<Node>, ix: usize) -> usize {
     let mut lowest_cost = std::f64::MAX;
     let mut best_jx: usize = 0;
     for jx in 0 .. clusters.len() {
@@ -328,7 +318,7 @@ fn find_best_match<T : BoundedVolume>(clusters: &Vec<Node<T>>, ix: usize) -> usi
 }
 
 // Cost is the surface area of the combined bounding box.
-fn cost<T : BoundedVolume>(c1: &Node<T>, c2: &Node<T>) -> f64 {
+fn cost(c1: &Node, c2: &Node) -> f64 {
     let aabb1 = c1.aabb();
     let aabb2 = c2.aabb();
     let combined_aabb = combine_aabb(aabb1, aabb2);
