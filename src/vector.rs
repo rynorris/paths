@@ -21,8 +21,11 @@ impl Vector3 {
     }
 
     pub fn max(&self) -> f64 {
-        let w = if self.x > self.y { self.x } else { self.y };
-        if w > self.z { w } else { self.z }
+        f64::max(self.x, f64::max(self.y, self.z))
+    }
+
+    pub fn min(&self) -> f64 {
+        f64::min(self.x, f64::min(self.y, self.z))
     }
 
     pub fn normed(&self) -> Vector3 {
@@ -47,6 +50,26 @@ impl Vector3 {
         };
         let k = i.cross(j);
         (i, j, k)
+    }
+
+    pub fn invert(&self) -> Vector3 {
+        Vector3::new(1.0 / self.x, 1.0 / self.y, 1.0 / self.z)
+    }
+
+    pub fn componentwise_max(v1: Vector3, v2: Vector3) -> Vector3 {
+        Vector3::new(
+            f64::max(v1.x, v2.x),
+            f64::max(v1.y, v2.y),
+            f64::max(v1.z, v2.z),
+        )
+    }
+
+    pub fn componentwise_min(v1: Vector3, v2: Vector3) -> Vector3 {
+        Vector3::new(
+            f64::min(v1.x, v2.x),
+            f64::min(v1.y, v2.y),
+            f64::min(v1.z, v2.z),
+        )
     }
 }
 
@@ -78,6 +101,18 @@ impl ops::Sub<Vector3> for Vector3 {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,
+        }
+    }
+}
+
+impl ops::Mul<Vector3> for Vector3 {
+    type Output = Vector3;
+
+    fn mul(self, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.x * other.x,
+            y: self.y * other.y,
+            z: self.z * other.z,
         }
     }
 }

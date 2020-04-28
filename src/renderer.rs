@@ -84,10 +84,10 @@ impl Renderer {
 
             let emittance = material.emittance(ray.direction * -1, cos_out);
 
-            let new_ray = Ray{
-                origin: collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
-                direction: material.sample_pdf(ray.direction * -1, collision.normal),
-            };
+            let new_ray = Ray::new(
+                collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
+                material.sample_pdf(ray.direction * -1, collision.normal),
+            );
 
             let pdf = material.weight_pdf(ray.direction * -1, new_ray.direction * -1, collision.normal);
 
