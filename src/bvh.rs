@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
 use std::time::Instant;
 
 use crate::geom::{AABB, BoundedVolume, Collision, Ray};
@@ -7,7 +6,7 @@ use crate::vector::Vector3;
 
 
 // Ray-box collision algorithm taken from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
-fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
+fn ray_box_collide(ray: &Ray, aabb: &AABB, len: Option<f64>) -> Option<f64> {
     let t0s = (aabb.min - ray.origin) * ray.inv_direction;
     let t1s = (aabb.max - ray.origin) * ray.inv_direction;
     let tsmaller = Vector3::componentwise_min(t0s, t1s);
@@ -15,7 +14,11 @@ fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
     let tmin = tsmaller.max();
     let tmax = tbigger.min();
 
-    if tmin < tmax { Some(tmin) } else { None }
+    if tmin < tmax && len.map_or(true, |d| tmin < d) { 
+        Some(tmin)
+    } else {
+        None
+    }
 }
 
 enum Node {
@@ -73,19 +76,18 @@ pub struct BVH<T> {
 
 impl <T : BoundedVolume> BVH<T> {
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, &T)> {
-        let mut q: BinaryHeap<SearchNode> = BinaryHeap::with_capacity(100);
+        let mut stack: Vec<&Node> = Vec::with_capacity(100);
 
-        let mut sn = if let Some(distance) = ray_box_collide(&ray, &self.root.aabb()) {
-            SearchNode{ node: &self.root, distance }
+        let mut node = if let Some(_) = ray_box_collide(&ray, &self.root.aabb(), None) {
+            &self.root
         } else {
             return None;
         };
 
         let mut closest_collision: Option<(Collision, &T)> = None;
-        let mut close_nodes: Vec<SearchNode> = Vec::with_capacity(10);
 
         loop {
-            match sn.node {
+            match node {
                 Node::Leaf(ref leaf) => {
                     if let Some(col) = self.items[leaf.obj].intersect(ray) {
                         closest_collision = match closest_collision {
@@ -99,88 +101,31 @@ impl <T : BoundedVolume> BVH<T> {
                             None => Some((col, &self.items[leaf.obj])),
                         };
                     }
+                    if stack.is_empty() { break; } else { node = stack.pop().expect("Stack is not empty") }
                 },
                 Node::Cluster(clus) => {
-                    if let Some(distance) = ray_box_collide(&ray, &clus.left.aabb()) {
-                        if closest_collision.map_or(true, |(best, _)| distance <= best.distance) {
-                            // Peek to see if this is better than the top of the queue.
-                            // If so, loop again without popping on/off the queue.
-                            let new_node = SearchNode{ node: &clus.left, distance };
-                            if let Some(top) = q.peek() {
-                                if distance <= top.distance {
-                                    close_nodes.push(new_node);
-                                } else {
-                                    q.push(new_node);
-                                }
+                    let left_col = ray_box_collide(&ray, &clus.left.aabb(), closest_collision.map(|(best, _)| best.distance));
+                    let right_col = ray_box_collide(&ray, &clus.right.aabb(), closest_collision.map(|(best, _)| best.distance));
+                    match (left_col, right_col) {
+                        (Some(ld), Some(rd)) => {
+                            if ld < rd {
+                                stack.push(&clus.right);
+                                node = &clus.left;
                             } else {
-                                q.push(new_node);
+                                stack.push(&clus.left);
+                                node = &clus.right;
                             }
-                        }
-                    }
-
-                    if let Some(distance) = ray_box_collide(&ray, &clus.right.aabb()) {
-                        if closest_collision.map_or(true, |(best, _)| distance <= best.distance) {
-                            let new_node = SearchNode{ node: &clus.right, distance };
-                            if let Some(top) = q.peek() {
-                                if distance <= top.distance {
-                                    close_nodes.push(new_node);
-                                } else {
-                                    q.push(new_node);
-                                }
-                            } else {
-                                q.push(new_node);
-                            }
-                        }
+                        },
+                        (Some(_), None) => node = &clus.left,
+                        (None, Some(_)) => node = &clus.right,
+                        (None, None) => if stack.is_empty() { break; } else { node = stack.pop().expect("Stack is not empty") }
                     }
                 },
-            }
-
-            // Grab another node from the queue and repeat.
-            // If the queue is empty we are done.
-            if !close_nodes.is_empty() {
-                sn = close_nodes.pop().expect("Vec is not empty");
-            } else if !q.is_empty() {
-                sn = q.pop().expect("Queue is not empty");
-            } else {
-                break;
             }
         }
         closest_collision
     }
 }
-
-struct SearchNode<'a> {
-    node: &'a Node,
-    distance: f64,
-}
-
-impl <'a> Ord for SearchNode<'a> {
-
-    // Reversed ordering so that our BinaryHeap becomes a min heap.
-    fn cmp(&self, other: &SearchNode) -> Ordering {
-        if self.distance < other.distance {
-            Ordering::Greater
-        } else if self.distance > other.distance {
-            Ordering::Less
-        } else {
-            Ordering::Equal
-        }
-    }
-}
-
-impl <'a> PartialOrd for SearchNode<'a> {
-    fn partial_cmp(&self, other: &SearchNode) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl <'a> PartialEq for SearchNode<'a> {
-    fn eq(&self, other: &SearchNode) -> bool {
-        self.distance == other.distance
-    }
-}
-
-impl <'a> Eq for SearchNode<'a> {}
 
 // This algorithm for constructing the BVH taken from http://graphics.cs.cmu.edu/projects/aac/aac_build.pdf
 // Note that the authors of this paper made several optimizations to get the reported construction speed.
