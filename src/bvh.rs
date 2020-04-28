@@ -98,7 +98,7 @@ pub struct BVH<T> {
 
 impl <T : BoundedVolume> BVH<T> {
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, &T)> {
-        let mut q: BinaryHeap<SearchNode<T>> = BinaryHeap::new();
+        let mut q: BinaryHeap<SearchNode<T>> = BinaryHeap::with_capacity(100);
 
         if let Some(distance) = ray_box_collide(&ray, &self.root.aabb()) {
             q.push(SearchNode{ node: &self.root, distance });
@@ -407,7 +407,7 @@ fn get_bit(mc: u64, bit: u16) -> bool {
 
 #[cfg(test)]
 mod test {
-    use crate::paths::bvh;
+    use crate::bvh;
 
     #[test]
     fn test_morton_code() {
