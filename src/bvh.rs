@@ -75,14 +75,16 @@ impl <T : BoundedVolume> BVH<T> {
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, &T)> {
         let mut q: BinaryHeap<SearchNode> = BinaryHeap::with_capacity(100);
 
-        if let Some(distance) = ray_box_collide(&ray, &self.root.aabb()) {
-            q.push(SearchNode{ node: &self.root, distance });
-        }
+        let mut sn = if let Some(distance) = ray_box_collide(&ray, &self.root.aabb()) {
+            SearchNode{ node: &self.root, distance }
+        } else {
+            return None;
+        };
 
         let mut closest_collision: Option<(Collision, &T)> = None;
+        let mut close_nodes: Vec<SearchNode> = Vec::with_capacity(10);
 
-        while !q.is_empty() {
-            let sn = q.pop().expect("Queue is not empty");
+        loop {
             match sn.node {
                 Node::Leaf(ref leaf) => {
                     if let Some(col) = self.items[leaf.obj].intersect(ray) {
@@ -101,16 +103,46 @@ impl <T : BoundedVolume> BVH<T> {
                 Node::Cluster(clus) => {
                     if let Some(distance) = ray_box_collide(&ray, &clus.left.aabb()) {
                         if closest_collision.map_or(true, |(best, _)| distance <= best.distance) {
-                            q.push(SearchNode{ node: &clus.left, distance });
+                            // Peek to see if this is better than the top of the queue.
+                            // If so, loop again without popping on/off the queue.
+                            let new_node = SearchNode{ node: &clus.left, distance };
+                            if let Some(top) = q.peek() {
+                                if distance <= top.distance {
+                                    close_nodes.push(new_node);
+                                } else {
+                                    q.push(new_node);
+                                }
+                            } else {
+                                q.push(new_node);
+                            }
                         }
                     }
 
                     if let Some(distance) = ray_box_collide(&ray, &clus.right.aabb()) {
                         if closest_collision.map_or(true, |(best, _)| distance <= best.distance) {
-                            q.push(SearchNode{ node: &clus.right, distance });
+                            let new_node = SearchNode{ node: &clus.right, distance };
+                            if let Some(top) = q.peek() {
+                                if distance <= top.distance {
+                                    close_nodes.push(new_node);
+                                } else {
+                                    q.push(new_node);
+                                }
+                            } else {
+                                q.push(new_node);
+                            }
                         }
                     }
                 },
+            }
+
+            // Grab another node from the queue and repeat.
+            // If the queue is empty we are done.
+            if !close_nodes.is_empty() {
+                sn = close_nodes.pop().expect("Vec is not empty");
+            } else if !q.is_empty() {
+                sn = q.pop().expect("Queue is not empty");
+            } else {
+                break;
             }
         }
         closest_collision
