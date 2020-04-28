@@ -8,12 +8,12 @@ use crate::vector::Vector3;
 
 // Ray-box collision algorithm taken from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
 fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
-    let mut tmin = (aabb.min.x - ray.origin.x) / ray.direction.x;
-    let mut tmax = (aabb.max.x - ray.origin.x) / ray.direction.x;
+    let mut tmin = (aabb.min.x - ray.origin.x) * ray.inv_direction.x;
+    let mut tmax = (aabb.max.x - ray.origin.x) * ray.inv_direction.x;
     if tmin > tmax { std::mem::swap(&mut tmin, &mut tmax); }
 
-    let mut tymin = (aabb.min.y - ray.origin.y) / ray.direction.y;
-    let mut tymax = (aabb.max.y - ray.origin.y) / ray.direction.y;
+    let mut tymin = (aabb.min.y - ray.origin.y) * ray.inv_direction.y;
+    let mut tymax = (aabb.max.y - ray.origin.y) * ray.inv_direction.y;
     if tymin > tymax { std::mem::swap(&mut tymin, &mut tymax); }
 
     if (tmin > tymax) || (tymin > tmax) {
@@ -28,8 +28,8 @@ fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
         tmax = tymax;
     }
 
-    let mut tzmin = (aabb.min.z - ray.origin.z) / ray.direction.z;
-    let mut tzmax = (aabb.max.z - ray.origin.z) / ray.direction.z;
+    let mut tzmin = (aabb.min.z - ray.origin.z) * ray.inv_direction.z;
+    let mut tzmax = (aabb.max.z - ray.origin.z) * ray.inv_direction.z;
     if tzmin > tzmax { std::mem::swap(&mut tzmin, &mut tzmax); }
 
     if (tmin > tzmax) || (tzmin > tmax) {

@@ -48,6 +48,10 @@ impl Vector3 {
         let k = i.cross(j);
         (i, j, k)
     }
+
+    pub fn invert(&self) -> Vector3 {
+        Vector3::new(1.0 / self.x, 1.0 / self.y, 1.0 / self.z)
+    }
 }
 
 impl ops::Add<Vector3> for Vector3 {

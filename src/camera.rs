@@ -92,7 +92,7 @@ impl Camera {
         // Weight is d.n, but sinze n is just (0,0,1) we can shortcut.
         let weight = direction.z;
 
-        (Ray { origin, direction }, weight)
+        (Ray::new(origin, direction), weight)
     }
 
     pub fn set_orientation(&mut self, yaw: f64, pitch: f64, roll: f64) {

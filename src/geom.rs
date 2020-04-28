@@ -10,19 +10,23 @@ use crate::vector::Vector3;
 pub struct Ray {
     pub origin: Vector3,
     pub direction: Vector3,
+    pub inv_direction: Vector3,
 }
 
 impl Ray {
+    pub fn new(origin: Vector3, direction: Vector3) -> Ray {
+        Ray {
+            origin, direction, inv_direction: direction.invert()
+        }
+    }
+
     pub fn random_in_hemisphere(&self) -> Ray {
         let mut rng = rand::thread_rng();
         let yaw = (rng.gen::<f64>() - 0.5) * PI;
         let pitch = (rng.gen::<f64>() - 0.5) * PI;
         let roll = (rng.gen::<f64>() - 0.5) * PI;
         let rot = Matrix3::rotation(yaw, pitch, roll);
-        Ray {
-            origin: self.origin,
-            direction: rot * self.direction,
-        }
+        Ray::new(self.origin, rot * self.direction)
     }
 }
 
