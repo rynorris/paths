@@ -8,63 +8,14 @@ use crate::vector::Vector3;
 
 // Ray-box collision algorithm taken from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
 fn ray_box_collide(ray: &Ray, aabb: &AABB) -> Option<f64> {
-    let (mut tmin, mut tmax) = if ray.sign[0] {
-        (
-            (aabb.min.x - ray.origin.x) * ray.inv_direction.x,
-            (aabb.max.x - ray.origin.x) * ray.inv_direction.x
-        )
-    } else {
-        (
-            (aabb.max.x - ray.origin.x) * ray.inv_direction.x,
-            (aabb.min.x - ray.origin.x) * ray.inv_direction.x
-        )
-    };
+    let t0s = (aabb.min - ray.origin) * ray.inv_direction;
+    let t1s = (aabb.max - ray.origin) * ray.inv_direction;
+    let tsmaller = Vector3::componentwise_min(t0s, t1s);
+    let tbigger = Vector3::componentwise_max(t0s, t1s);
+    let tmin = tsmaller.max();
+    let tmax = tbigger.min();
 
-    let (tymin, tymax) = if ray.sign[1] {
-        (
-            (aabb.min.y - ray.origin.y) * ray.inv_direction.y,
-            (aabb.max.y - ray.origin.y) * ray.inv_direction.y
-        )
-    } else {
-        (
-            (aabb.max.y - ray.origin.y) * ray.inv_direction.y,
-            (aabb.min.y - ray.origin.y) * ray.inv_direction.y
-        )
-    };
-
-    if (tmin > tymax) || (tymin > tmax) {
-        return None;
-    }
-
-    if tymin > tmin {
-        tmin = tymin;
-    }
-
-    if tymax < tmax {
-        tmax = tymax;
-    }
-
-    let (tzmin, tzmax) = if ray.sign[2] {
-        (
-            (aabb.min.z - ray.origin.z) * ray.inv_direction.z,
-            (aabb.max.z - ray.origin.z) * ray.inv_direction.z
-        )
-    } else {
-        (
-            (aabb.max.z - ray.origin.z) * ray.inv_direction.z,
-            (aabb.min.z - ray.origin.z) * ray.inv_direction.z
-        )
-    };
-
-    if (tmin > tzmax) || (tzmin > tmax) {
-        return None;
-    }
-
-    if tzmin > tmin {
-        tmin = tzmin;
-    }
-
-    Some(tmin)
+    if tmin < tmax { Some(tmin) } else { None }
 }
 
 enum Node<T> {
