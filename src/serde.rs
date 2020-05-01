@@ -112,7 +112,7 @@ impl CameraDescription {
         let mut camera = Camera::new(
             self.image_width,
             self.image_height,
-            Box::new(CorrelatedMultiJitteredSampler::new(42, 16, 16)));
+            Box::new(CorrelatedMultiJitteredSampler::new(42, 4, 4)));
 
         camera.location = self.location.to_vector();
         camera.set_orientation(self.orientation.yaw, self.orientation.pitch, self.orientation.roll);

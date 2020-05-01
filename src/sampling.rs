@@ -69,10 +69,10 @@ impl Sampler for UniformSampler {
 // See https://graphics.pixar.com/library/MultiJitteredSampling/paper.pdf for details.
 #[derive(Clone, Debug)]
 pub struct CorrelatedMultiJitteredSampler {
-    p: u32,
-    m: u32,
-    n: u32,
-    s: u32,
+    p: u32,  // Pattern seed
+    m: u32,  // Width
+    n: u32,  // Height
+    s: u32,  // Sample index
 }
 
 impl CorrelatedMultiJitteredSampler {

@@ -14,7 +14,9 @@ pub mod sampling;
 pub mod scene;
 pub mod serde;
 pub mod stress;
+pub mod trace;
 pub mod vector;
+pub mod worker;
 
 use std::env;
 use std::fs::File;

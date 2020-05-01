@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::time::Instant;
 
 use crate::geom::{AABB, BoundedVolume, Collision, Ray};
