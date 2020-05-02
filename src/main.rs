@@ -14,6 +14,7 @@ pub mod sampling;
 pub mod scene;
 pub mod serde;
 pub mod stress;
+pub mod timing;
 pub mod trace;
 pub mod vector;
 pub mod worker;
@@ -88,21 +89,21 @@ fn main() {
 
     let start_time = Instant::now();
 
-    let frames_per_second: u64 = 60;
-    let nanos_per_frame: u64 = 1_000_000_000 / frames_per_second;
-    let frame_duration = Duration::from_nanos(nanos_per_frame);
+    let mut frame_count: u32 = 0;
+    let frames_per_second: u32 = 60;
+    let mut governer = timing::Governer::new(60);
 
     renderer.fill_request_queue();
     while is_running {
-        let frame_start_time = Instant::now();
-
         renderer.drain_result_queue();
         renderer.fill_request_queue();
         let image = renderer.render();
 
         let num_rays = renderer.num_rays_cast();
         let rays_per_pixel = num_rays / num_pixels;
-        println!("[{:.1?}] Num rays: {} ({} per pixel)", start_time.elapsed(), num_rays, rays_per_pixel);
+        if frame_count % frames_per_second == 0 {
+            println!("[{:.1?}] Num rays: {} (avg {} per pixel)", start_time.elapsed(), num_rays, rays_per_pixel);
+        }
 
         for ix in 0 .. image.pixels.len() {
             let colour = image.pixels[ix];
@@ -148,11 +149,8 @@ fn main() {
             }
         }
 
-        // Sleep to maintain 60fps.
-        let elapsed = Instant::now().duration_since(frame_start_time);
-        match frame_duration.checked_sub(elapsed) {
-            Some(remaining_time_in_frame) => std::thread::sleep(remaining_time_in_frame),
-            None => println!("Failing to maintain 60fps: {}ms elapsed this frame.", elapsed.as_millis()),
-        }
+        // Maintain 60fps.
+        governer.end_frame();
+        frame_count += 1;
     }
 }

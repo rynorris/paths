@@ -27,7 +27,7 @@ impl Renderer {
         let estimator = Estimator::new(scene.camera.width as usize, scene.camera.height as usize);
         let pool = ThreadPool::new(num_workers);
 
-        let (request_tx, request_rx) = channel::bounded::<worker::RenderRequest>(100);
+        let (request_tx, request_rx) = channel::bounded::<worker::RenderRequest>(200);
         let (result_tx, result_rx) = channel::unbounded::<worker::RenderResult>();
 
         // Spin up 4 workers.
@@ -48,6 +48,10 @@ impl Renderer {
     }
 
     pub fn fill_request_queue(&mut self) {
+        if self.request_tx.is_empty() {
+            println!("[WARN] Request queue was empty");
+        }
+
         while !self.request_tx.is_full() {
             let request = self.next_request();
             match self.request_tx.send(request) {
