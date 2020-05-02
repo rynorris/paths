@@ -90,7 +90,8 @@ fn main() {
     let start_time = Instant::now();
 
     while is_running {
-        renderer.trace_full_pass();
+        renderer.drain_result_queue();
+        renderer.fill_request_queue();
         let image = renderer.render();
 
         num_samples += 1;

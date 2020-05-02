@@ -259,7 +259,6 @@ impl DiskSampler for CorrelatedMultiJitteredSampler {
 
             let theta = 2.0 * PI * x;
             let r = y.sqrt();
-            println!("x = {}, y = {}, r = {}, t = {}", x, y, r, theta);
             Some((r * theta.cos(), r * theta.sin()))
         }
     }
