@@ -45,7 +45,7 @@ impl Camera {
     }
 
     pub fn get_ray_for_pixel(
-        &mut self,
+        &self,
         x: u32,
         y: u32,
         point_on_square: (f64, f64),

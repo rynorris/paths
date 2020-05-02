@@ -11,12 +11,15 @@ use crate::worker;
 pub struct Renderer {
     pub scene: Arc<Scene>,
     estimator: Estimator,
+    epoch: u64,
     pool: ThreadPool,
     request_tx: channel::Sender<worker::RenderRequest>,
     result_rx: channel::Receiver<worker::RenderResult>,
+    control_txs: Vec<channel::Sender<worker::ControlMessage>>,
     
     // Request iteration state.
-    cur_x: u32,
+    block_num: u32,
+    quick_render: bool,
 
     // Stats.
     num_rays_cast: u64,
@@ -29,14 +32,33 @@ impl Renderer {
 
         let (request_tx, request_rx) = channel::bounded::<worker::RenderRequest>(200);
         let (result_tx, result_rx) = channel::unbounded::<worker::RenderResult>();
+        let mut control_txs: Vec<channel::Sender<worker::ControlMessage>> = Vec::with_capacity(num_workers);
 
         // Spin up 4 workers.
         for _ in 0..num_workers {
-            let worker = worker::Worker::new(request_rx.clone(), result_tx.clone(), scene.clone());
+            let (control_tx, control_rx) = channel::unbounded::<worker::ControlMessage>();
+            let mut worker = worker::Worker::new(
+                request_rx.clone(),
+                result_tx.clone(),
+                control_rx.clone(),
+                scene.clone(),
+            );
+            control_txs.push(control_tx);
             pool.execute(move|| worker.run_forever());
         }
 
-        Renderer{ scene, estimator, pool, request_tx, result_rx, cur_x: 0, num_rays_cast: 0 }
+        Renderer{
+            scene,
+            estimator,
+            epoch: 0,
+            pool,
+            request_tx,
+            result_rx,
+            control_txs,
+            block_num: 0,
+            quick_render: true,
+            num_rays_cast: 0,
+        }
     }
 
     pub fn render(&self) -> Image {
@@ -64,6 +86,11 @@ impl Renderer {
     pub fn drain_result_queue(&mut self) {
         let results = self.result_rx.try_iter().collect::<Vec<worker::RenderResult>>();
         results.iter().for_each(|result| {
+            // Ignore results from a different epoch.
+            if result.epoch != self.epoch {
+                return;
+            }
+
             self.num_rays_cast += result.samples.len() as u64;
             result.samples.iter().for_each(|(x, y, colour)| {
                 self.estimator.update_pixel(*x as usize, *y as usize, *colour);
@@ -75,23 +102,75 @@ impl Renderer {
         }
     }
 
+    pub fn reorient_camera(&mut self, yaw: f64, pitch: f64, roll: f64) {
+        let epoch = self.new_epoch();
+        self.broadcast_command(worker::ControlMessage::new()
+            .cmd(worker::Command::ReorientCamera(yaw, pitch, roll))
+            .cmd(worker::Command::SetEpoch(epoch))
+        );
+    }
+
     pub fn reset(&mut self) {
+        let epoch = self.new_epoch();
+        self.broadcast_command(worker::ControlMessage::new()
+            .cmd(worker::Command::SetEpoch(epoch))
+        );
+    }
+
+    pub fn shutdown(&mut self) {
+        println!("Signaling workers to shut down.");
+        self.broadcast_command(worker::ControlMessage::new()
+            .cmd(worker::Command::Shutdown)
+        );
+
+        // Wait for workers to shutdown.
+        println!("Waiting for workers to close...");
+        self.pool.join();
+
+        println!("Shutdown complete!");
+    }
+
+    fn new_epoch(&mut self) -> u64 {
+        self.block_num = 0;
+        self.num_rays_cast = 0;
+        self.quick_render = true;
         self.estimator = Estimator::new(self.scene.camera.width as usize, self.scene.camera.height as usize);
+        self.epoch += 1;
+        self.epoch
     }
 
     fn next_request(&mut self) -> worker::RenderRequest {
-        let pattern_size: (u32, u32) = (4, 4);
-        let x = self.cur_x;
+        // Start from the center, since that's the most interesting part of the image probably.
+        let w = self.scene.camera.width;
+        let n = self.block_num;
+        let x = if n % 2 == 0 { (w + n) / 2 } else { (w - n) / 2 };
 
-        self.cur_x += 1;
-        if self.cur_x >= self.scene.camera.width {
-            self.cur_x = 0;
+        // Want the image to appear quickly after a reset.
+        // So use a small pattern size for the first few samples after a new epoch.
+        let pattern_size: (u32, u32) = if self.quick_render {
+            (1, 1)
+        } else {
+            (5, 5)
+        };
+
+        self.block_num += 1;
+        if self.block_num >= self.scene.camera.width {
+            self.block_num = 0;
+            self.quick_render = false;
         }
 
         worker::RenderRequest{
+            epoch: self.epoch,
             top_left: (x, 0),
             bottom_right: (x, self.scene.camera.height - 1),
             pattern_size,
         }
+    }
+
+    fn broadcast_command(&self, msg: worker::ControlMessage) {
+        println!("Sending command to workers: {:?}", msg);
+        self.control_txs.iter().for_each(|tx| {
+            tx.send(msg.clone()).expect("Should succeed to send control messages.");
+        });
     }
 }

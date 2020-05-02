@@ -22,7 +22,7 @@ pub mod worker;
 use std::env;
 use std::fs::File;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use crate::renderer::Renderer;
 use crate::serde::SceneDescription;
@@ -130,22 +130,13 @@ fn main() {
                    Some(Keycode::K) => pitch += 0.1,
                    Some(Keycode::J) => yaw += 0.1,
                    Some(Keycode::L) => yaw -= 0.1,
-                   Some(Keycode::W) => Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.distance_from_lens += 0.00001,
-                   Some(Keycode::Q) => Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.distance_from_lens -= 0.00001,
                    _ => should_reset = false,
                 },
                 _ => should_reset = false,
             }
 
             if should_reset {
-                println!("Resetting render");
-                Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.set_orientation(yaw, pitch, roll);
-                println!("Yaw: {:.1}, Pitch: {:.1}, Roll: {:.1}", yaw, pitch, roll);
-                println!("F: {:.1}, V: {:.1}, A: {:.1}",
-                         renderer.scene.camera.focal_length,
-                         renderer.scene.camera.distance_from_lens,
-                         renderer.scene.camera.aperture);
-                renderer.reset();
+                renderer.reorient_camera(yaw, pitch, roll);
             }
         }
 
@@ -153,4 +144,7 @@ fn main() {
         governer.end_frame();
         frame_count += 1;
     }
+
+    // Shutdown.
+    renderer.shutdown();
 }
