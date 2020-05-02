@@ -280,6 +280,10 @@ mod test {
         ($name:ident, $sampler:ident, $domain:ident, $checker:ident) => {
             #[test]
             fn $name() {
+                // Check we get the expected number of samplers.
+                let pattern = $sampler::new(42, 2, 3).pattern::<$domain>();
+                assert_eq!(pattern.count(), 6);
+
                 // Check the same seed produces the same results.
                 let pattern1 = $sampler::new(42, 2, 3).pattern::<$domain>();
                 let pattern2 = $sampler::new(42, 2, 3).pattern::<$domain>();
