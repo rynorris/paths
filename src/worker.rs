@@ -24,9 +24,9 @@ impl Worker {
         request_rx: channel::Receiver<RenderRequest>,
         result_tx: channel::Sender<RenderResult>,
         control_rx: channel::Receiver<ControlMessage>,
-        scene: Arc<Scene>
+        scene: Arc<Scene>,
+        camera: Camera,
     ) -> Worker {
-        let camera = scene.camera.clone();
         Worker{
             request_rx, result_tx, control_rx,
             scene,

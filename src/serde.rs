@@ -53,7 +53,11 @@ pub struct SceneDescription {
 }
 
 impl SceneDescription {
-    pub fn to_scene(&self) -> scene::Scene {
+    pub fn camera(&self) -> Camera {
+        self.camera.to_camera()
+    }
+
+    pub fn scene(&self) -> scene::Scene {
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
         let mut models: HashMap<String, Vec<geom::Shape>> = HashMap::with_capacity(self.models.len());
 
@@ -87,7 +91,7 @@ impl SceneDescription {
                 objects.push(scene::Object{ material: material.clone(), shape: shape.clone() });
             });
         });
-        scene::Scene::new(self.camera.to_camera(), objects, self.skybox.to_skybox())
+        scene::Scene::new(objects, self.skybox.to_skybox())
     }
 }
 

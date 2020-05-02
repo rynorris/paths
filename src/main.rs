@@ -46,7 +46,8 @@ fn main() {
         stress::generate_stress_scene(500)
     });
 
-    let scene = scene_description.to_scene();
+    let camera = scene_description.camera();
+    let scene = scene_description.scene();
 
     println!("Contructing scene...");
     let width = scene_description.camera.image_width;
@@ -81,7 +82,7 @@ fn main() {
     let mut pitch: f64 = scene_description.camera.orientation.pitch;
     let mut roll: f64 = scene_description.camera.orientation.roll;
 
-    let mut renderer = Renderer::new(Arc::new(scene), 4);
+    let mut renderer = Renderer::new(camera, Arc::new(scene), 4);
 
     let mut texture_buffer: Vec<u8> = vec![0; (width * height * 3) as usize];
 

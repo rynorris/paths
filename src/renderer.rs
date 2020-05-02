@@ -3,13 +3,14 @@ use std::sync::{Arc};
 use crossbeam::channel;
 use threadpool::ThreadPool;
 
-use crate::camera::Image;
+use crate::camera::{Camera, Image};
 use crate::pixels::Estimator;
 use crate::scene::Scene;
 use crate::worker;
 
 pub struct Renderer {
-    pub scene: Arc<Scene>,
+    width: u32,
+    height: u32,
     estimator: Estimator,
     epoch: u64,
     pool: ThreadPool,
@@ -26,8 +27,8 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(scene: Arc<Scene>, num_workers: usize) -> Renderer {
-        let estimator = Estimator::new(scene.camera.width as usize, scene.camera.height as usize);
+    pub fn new(camera: Camera, scene: Arc<Scene>, num_workers: usize) -> Renderer {
+        let estimator = Estimator::new(camera.width as usize, camera.height as usize);
         let pool = ThreadPool::new(num_workers);
 
         let (request_tx, request_rx) = channel::bounded::<worker::RenderRequest>(200);
@@ -42,13 +43,15 @@ impl Renderer {
                 result_tx.clone(),
                 control_rx.clone(),
                 scene.clone(),
+                camera.clone(),
             );
             control_txs.push(control_tx);
             pool.execute(move|| worker.run_forever());
         }
 
         Renderer{
-            scene,
+            width: camera.width,
+            height: camera.height,
             estimator,
             epoch: 0,
             pool,
@@ -134,14 +137,14 @@ impl Renderer {
         self.block_num = 0;
         self.num_rays_cast = 0;
         self.quick_render = true;
-        self.estimator = Estimator::new(self.scene.camera.width as usize, self.scene.camera.height as usize);
+        self.estimator = Estimator::new(self.width as usize, self.height as usize);
         self.epoch += 1;
         self.epoch
     }
 
     fn next_request(&mut self) -> worker::RenderRequest {
         // Start from the center, since that's the most interesting part of the image probably.
-        let w = self.scene.camera.width;
+        let w = self.width;
         let n = self.block_num;
         let x = if n % 2 == 0 { (w + n) / 2 } else { (w - n) / 2 };
 
@@ -154,7 +157,7 @@ impl Renderer {
         };
 
         self.block_num += 1;
-        if self.block_num >= self.scene.camera.width {
+        if self.block_num >= self.width {
             self.block_num = 0;
             self.quick_render = false;
         }
@@ -162,7 +165,7 @@ impl Renderer {
         worker::RenderRequest{
             epoch: self.epoch,
             top_left: (x, 0),
-            bottom_right: (x, self.scene.camera.height - 1),
+            bottom_right: (x, self.height - 1),
             pattern_size,
         }
     }
