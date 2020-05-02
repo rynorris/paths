@@ -48,7 +48,6 @@ impl Renderer {
     }
 
     pub fn fill_request_queue(&mut self) {
-        println!("Queue still had {} requests in.", self.request_tx.len());
         while !self.request_tx.is_full() {
             let request = self.next_request();
             match self.request_tx.send(request) {
@@ -61,8 +60,8 @@ impl Renderer {
     pub fn drain_result_queue(&mut self) {
         let results = self.result_rx.try_iter().collect::<Vec<worker::RenderResult>>();
         results.iter().for_each(|result| {
+            self.num_rays_cast += result.samples.len() as u64;
             result.samples.iter().for_each(|(x, y, colour)| {
-                self.num_rays_cast += 1;
                 self.estimator.update_pixel(*x as usize, *y as usize, *colour);
             });
         });

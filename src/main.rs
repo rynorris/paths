@@ -21,7 +21,7 @@ pub mod worker;
 use std::env;
 use std::fs::File;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::renderer::Renderer;
 use crate::serde::SceneDescription;
@@ -88,7 +88,14 @@ fn main() {
 
     let start_time = Instant::now();
 
+    let frames_per_second: u64 = 60;
+    let nanos_per_frame: u64 = 1_000_000_000 / frames_per_second;
+    let frame_duration = Duration::from_nanos(nanos_per_frame);
+
+    renderer.fill_request_queue();
     while is_running {
+        let frame_start_time = Instant::now();
+
         renderer.drain_result_queue();
         renderer.fill_request_queue();
         let image = renderer.render();
@@ -139,6 +146,13 @@ fn main() {
                          renderer.scene.camera.aperture);
                 renderer.reset();
             }
+        }
+
+        // Sleep to maintain 60fps.
+        let elapsed = Instant::now().duration_since(frame_start_time);
+        match frame_duration.checked_sub(elapsed) {
+            Some(remaining_time_in_frame) => std::thread::sleep(remaining_time_in_frame),
+            None => println!("Failing to maintain 60fps: {}ms elapsed this frame.", elapsed.as_millis()),
         }
     }
 }
