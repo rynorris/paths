@@ -259,6 +259,7 @@ impl DiskSampler for CorrelatedMultiJitteredSampler {
 
             let theta = 2.0 * PI * x;
             let r = y.sqrt();
+            println!("x = {}, y = {}, r = {}, t = {}", x, y, r, theta);
             Some((r * theta.cos(), r * theta.sin()))
         }
     }
@@ -324,18 +325,20 @@ mod test {
 
         // Hard-code expected values to ensure that the seed is stable across test runs.
         let expected = vec![
-            (0.5116932952906768, 0.11128139036233547),
-            (-0.19882727188585797, -0.3074945110868627),
-            (0.047818668766274705, 0.7212367390953817),
-            (-0.042991584398592714, -0.6502885045286344),
-            (-0.9609023952351098, 0.17826224531019477),
-            (0.7638722573236012, -0.47610578960668487),
-            (1.0639995674541876, 0.35499168995912256),
+            (0.23288271976954444, 0.3020407408384594),
+            (-0.41231103969933375, -0.00884025347340132),
+            (-0.01713192576599384, 0.6485187612468607),
+            (0.38017576583611823, -0.7185092520948844),
+            (-0.7994905690029475, 0.35683991876591936),
+            (0.9139355167587502, -0.3308265058968712)
         ];
 
         let actual = pattern.collect::<Vec<(f64, f64)>>();
         assert_eq!(actual, expected);
-        for (x, y) in actual {
+
+        // Now test all values are within bounds using a very large pattern.
+        let large_pattern = CorrelatedMultiJitteredSampler::new(0, 100, 100).pattern::<Disk>();
+        for (x, y) in large_pattern {
             assert_eq!(is_in_unit_disk(x, y), true);
         }
     }
@@ -346,18 +349,20 @@ mod test {
 
         // Hard-code expected values to ensure that the seed is stable across test runs.
         let expected = vec![
-            (0.5116932952906768, 0.11128139036233547),
-            (-0.19882727188585797, -0.3074945110868627),
-            (0.047818668766274705, 0.7212367390953817),
-            (-0.042991584398592714, -0.6502885045286344),
-            (-0.9609023952351098, 0.17826224531019477),
-            (0.7638722573236012, -0.47610578960668487),
-            (1.0639995674541876, 0.35499168995912256),
+            (0.14546297029350555, 0.14546297029350555),
+            (0.5034118768727529, 0.17007854353941954),
+            (0.25420341990294765, 0.4208700865696143),
+            (0.8274558249416957, 0.660789158275029),
+            (0.43318656421619134, 0.7665198975495247),
+            (0.9447243057970165, 0.9447243057970164)
         ];
 
         let actual = pattern.collect::<Vec<(f64, f64)>>();
         assert_eq!(actual, expected);
-        for (x, y) in actual {
+        
+        // Now test all values are within bounds using a very large pattern.
+        let large_pattern = CorrelatedMultiJitteredSampler::new(0, 100, 100).pattern::<Square>();
+        for (x, y) in large_pattern {
             assert_eq!(is_in_unit_square(x, y), true);
         }
     }

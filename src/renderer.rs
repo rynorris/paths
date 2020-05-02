@@ -37,7 +37,7 @@ impl Renderer {
         }
 
         // Send requests off for slices of the image.
-        let pattern_size: (u32, u32) = (5, 5);
+        let pattern_size: (u32, u32) = (4, 4);
         for x in 0 .. self.scene.camera.width {
             let request = worker::RenderRequest{
                 top_left: (x, 0),
