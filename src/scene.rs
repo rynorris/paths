@@ -1,5 +1,4 @@
 use crate::bvh::{construct_bvh_aac, BVH};
-use crate::camera::Camera;
 use crate::colour::Colour;
 use crate::geom::{AABB, BoundedVolume, Collision, Shape, Ray};
 use crate::material::Material;
@@ -60,15 +59,14 @@ pub struct GradientSky {
 }
 
 pub struct Scene {
-    pub camera: Camera,
     pub skybox: Skybox,
     bvh: BVH<Object>,
 }
 
 impl Scene {
-    pub fn new(camera: Camera, objects: Vec<Object>, skybox: Skybox) -> Scene {
+    pub fn new(objects: Vec<Object>, skybox: Skybox) -> Scene {
         let bvh = construct_bvh_aac(objects);
-        Scene { camera, skybox, bvh }
+        Scene { skybox, bvh }
     }
 
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Material)> {

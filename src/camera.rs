@@ -1,7 +1,6 @@
 use crate::colour::Colour;
 use crate::geom::Ray;
 use crate::matrix::Matrix3;
-use crate::sampling::Sampler;
 use crate::vector::Vector3;
 
 pub struct Image {
@@ -21,15 +20,10 @@ pub struct Camera {
     pub sensor_height: f64,
     pub width: u32,
     pub height: u32,
-    sampler: Box<dyn Sampler>,
-
-    // Current bundle details.
-    bundle_offsets: (f64, f64),
-    bundle_lens_point: Vector3,
 }
 
 impl Camera {
-    pub fn new(width: u32, height: u32, sampler: Box<dyn Sampler>) -> Camera {
+    pub fn new(width: u32, height: u32) -> Camera {
         let camera = Camera {
             location: Vector3::new(0.0, 0.0, 0.0),
             focal_length: 9.86,
@@ -40,25 +34,23 @@ impl Camera {
             sensor_height: height as f64,
             width,
             height,
-            sampler,
-
-            bundle_offsets: (0.0, 0.0),
-            bundle_lens_point: Vector3::new(0.0, 0.0, 0.0),
         };
         camera
     }
 
-    pub fn init_bundle(&mut self) {
-        self.sampler.next();
-        let (jx, jy) = self.sampler.sample_square();
-        self.bundle_offsets = (jx, jy);
-
+    fn point_on_lens(&self, point_on_disk: (f64, f64)) -> Vector3 {
         let aperture_radius = self.focal_length / self.aperture;
-        let (lens_x, lens_y) = self.sampler.sample_disk();
-        self.bundle_lens_point = Vector3::new(lens_x * aperture_radius, lens_y * aperture_radius, 0.0);
+        let (lens_x, lens_y) = point_on_disk;
+        Vector3::new(lens_x * aperture_radius, lens_y * aperture_radius, 0.0)
     }
 
-    pub fn get_ray_for_pixel(&mut self, x: u32, y: u32) -> (Ray, f64) {
+    pub fn get_ray_for_pixel(
+        &self,
+        x: u32,
+        y: u32,
+        point_on_square: (f64, f64),
+        point_on_disk: (f64, f64)
+    ) -> (Ray, f64) {
         // We'll compute the outbound ray first in lens-space where the centre of 
         // the lens is at the origin.
         // Then transform into world space.
@@ -70,7 +62,7 @@ impl Camera {
         let p = (f * v) / (v - f);
 
         // k = point on sensor
-        let (x_offset, y_offset) = self.bundle_offsets;
+        let (x_offset, y_offset) = point_on_square;
         let x_scale = self.sensor_width / (self.width as f64);
         let y_scale = self.sensor_height / (self.height as f64);
         let image_x = (x as f64) - (self.width as f64) / 2.0 + x_offset;
@@ -80,7 +72,7 @@ impl Camera {
         let k = Vector3::new(image_x * x_scale, image_y * y_scale, -self.distance_from_lens);
 
         // l = point on lens
-        let l = self.bundle_lens_point;
+        let l = self.point_on_lens(point_on_disk);
 
         // this equation for ray direction precomputed by hand to collapse all the terms that go away.
         let dir = ((k * (p/v)) + l) * -1;

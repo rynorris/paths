@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::camera::Camera;
 use crate::colour::Colour;
 use crate::matrix::Matrix3;
-use crate::sampling::CorrelatedMultiJitteredSampler;
 use crate::vector::Vector3;
 use crate::geom;
 use crate::material::{BasicMaterial, Material};
@@ -54,7 +53,11 @@ pub struct SceneDescription {
 }
 
 impl SceneDescription {
-    pub fn to_scene(&self) -> scene::Scene {
+    pub fn camera(&self) -> Camera {
+        self.camera.to_camera()
+    }
+
+    pub fn scene(&self) -> scene::Scene {
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
         let mut models: HashMap<String, Vec<geom::Shape>> = HashMap::with_capacity(self.models.len());
 
@@ -88,7 +91,7 @@ impl SceneDescription {
                 objects.push(scene::Object{ material: material.clone(), shape: shape.clone() });
             });
         });
-        scene::Scene::new(self.camera.to_camera(), objects, self.skybox.to_skybox())
+        scene::Scene::new(objects, self.skybox.to_skybox())
     }
 }
 
@@ -109,10 +112,7 @@ pub struct CameraDescription {
 
 impl CameraDescription {
     pub fn to_camera(&self) -> Camera {
-        let mut camera = Camera::new(
-            self.image_width,
-            self.image_height,
-            Box::new(CorrelatedMultiJitteredSampler::new(42, 16, 16)));
+        let mut camera = Camera::new(self.image_width, self.image_height);
 
         camera.location = self.location.to_vector();
         camera.set_orientation(self.orientation.yaw, self.orientation.pitch, self.orientation.roll);

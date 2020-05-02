@@ -14,7 +14,10 @@ pub mod sampling;
 pub mod scene;
 pub mod serde;
 pub mod stress;
+pub mod timing;
+pub mod trace;
 pub mod vector;
+pub mod worker;
 
 use std::env;
 use std::fs::File;
@@ -43,11 +46,13 @@ fn main() {
         stress::generate_stress_scene(500)
     });
 
-    let scene = scene_description.to_scene();
+    let camera = scene_description.camera();
+    let scene = scene_description.scene();
 
     println!("Contructing scene...");
     let width = scene_description.camera.image_width;
     let height = scene_description.camera.image_height;
+    let num_pixels = (width * height) as u64;
 
     // Initialize SDL and create window.
     let sdl_context = sdl2::init().unwrap();
@@ -77,22 +82,29 @@ fn main() {
     let mut pitch: f64 = scene_description.camera.orientation.pitch;
     let mut roll: f64 = scene_description.camera.orientation.roll;
 
-    let mut renderer = Renderer::new(Arc::new(scene), 4);
+    let mut renderer = Renderer::new(camera, Arc::new(scene), 4);
 
     let mut texture_buffer: Vec<u8> = vec![0; (width * height * 3) as usize];
 
     let mut is_running = true;
 
-    let mut num_samples = 0;
-
     let start_time = Instant::now();
 
+    let mut frame_count: u32 = 0;
+    let frames_per_second: u32 = 60;
+    let mut governer = timing::Governer::new(60);
+
+    renderer.fill_request_queue();
     while is_running {
-        renderer.trace_full_pass();
+        renderer.drain_result_queue();
+        renderer.fill_request_queue();
         let image = renderer.render();
 
-        num_samples += 1;
-        println!("[{:.1?}] Num samples: {:?}", start_time.elapsed(), num_samples);
+        let num_rays = renderer.num_rays_cast();
+        let rays_per_pixel = num_rays / num_pixels;
+        if frame_count % frames_per_second == 0 {
+            println!("[{:.1?}] Num rays: {} (avg {} per pixel)", start_time.elapsed(), num_rays, rays_per_pixel);
+        }
 
         for ix in 0 .. image.pixels.len() {
             let colour = image.pixels[ix];
@@ -119,24 +131,21 @@ fn main() {
                    Some(Keycode::K) => pitch += 0.1,
                    Some(Keycode::J) => yaw += 0.1,
                    Some(Keycode::L) => yaw -= 0.1,
-                   Some(Keycode::W) => Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.distance_from_lens += 0.00001,
-                   Some(Keycode::Q) => Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.distance_from_lens -= 0.00001,
                    _ => should_reset = false,
                 },
                 _ => should_reset = false,
             }
 
             if should_reset {
-                println!("Resetting render");
-                Arc::get_mut(&mut renderer.scene).expect("Can get mutable reference to scene").camera.set_orientation(yaw, pitch, roll);
-                println!("Yaw: {:.1}, Pitch: {:.1}, Roll: {:.1}", yaw, pitch, roll);
-                println!("F: {:.1}, V: {:.1}, A: {:.1}",
-                         renderer.scene.camera.focal_length,
-                         renderer.scene.camera.distance_from_lens,
-                         renderer.scene.camera.aperture);
-                renderer.reset();
-                num_samples = 0;
+                renderer.reorient_camera(yaw, pitch, roll);
             }
         }
+
+        // Maintain 60fps.
+        governer.end_frame();
+        frame_count += 1;
     }
+
+    // Shutdown.
+    renderer.shutdown();
 }
