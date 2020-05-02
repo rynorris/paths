@@ -13,6 +13,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Cache rust build directory
+      uses: actions/cache@v1
+      env:
+        cache-name: rust-cache
+      with:
+        path: ./target
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('./Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
     - name: Update apt registry
       run: sudo apt-get update
     - name: Install SDL2
