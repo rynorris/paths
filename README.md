@@ -5,6 +5,7 @@ paths
 
 It is purely a hobby-project for me to learn about this technology, and I had no idea how path-tracing worked (other than vague intuition) before starting.
 
+
 ### Implementation Checklist
 
 - [x] Basic path tracing of spheres
