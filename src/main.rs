@@ -50,6 +50,7 @@ fn main() {
     println!("Contructing scene...");
     let width = scene_description.camera.image_width;
     let height = scene_description.camera.image_height;
+    let num_pixels = (width * height) as u64;
 
     // Initialize SDL and create window.
     let sdl_context = sdl2::init().unwrap();
@@ -85,8 +86,6 @@ fn main() {
 
     let mut is_running = true;
 
-    let mut num_samples = 0;
-
     let start_time = Instant::now();
 
     while is_running {
@@ -94,8 +93,9 @@ fn main() {
         renderer.fill_request_queue();
         let image = renderer.render();
 
-        num_samples += 1;
-        println!("[{:.1?}] Num samples: {:?}", start_time.elapsed(), num_samples);
+        let num_rays = renderer.num_rays_cast();
+        let rays_per_pixel = num_rays / num_pixels;
+        println!("[{:.1?}] Num rays: {} ({} per pixel)", start_time.elapsed(), num_rays, rays_per_pixel);
 
         for ix in 0 .. image.pixels.len() {
             let colour = image.pixels[ix];
@@ -138,7 +138,6 @@ fn main() {
                          renderer.scene.camera.distance_from_lens,
                          renderer.scene.camera.aperture);
                 renderer.reset();
-                num_samples = 0;
             }
         }
     }

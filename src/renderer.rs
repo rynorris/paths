@@ -17,6 +17,9 @@ pub struct Renderer {
     
     // Request iteration state.
     cur_x: u32,
+
+    // Stats.
+    num_rays_cast: u64,
 }
 
 impl Renderer {
@@ -33,14 +36,19 @@ impl Renderer {
             pool.execute(move|| worker.run_forever());
         }
 
-        Renderer{ scene, estimator, pool, request_tx, result_rx, cur_x: 0 }
+        Renderer{ scene, estimator, pool, request_tx, result_rx, cur_x: 0, num_rays_cast: 0 }
     }
 
     pub fn render(&self) -> Image {
         self.estimator.render()
     }
 
+    pub fn num_rays_cast(&self) -> u64 {
+        self.num_rays_cast
+    }
+
     pub fn fill_request_queue(&mut self) {
+        println!("Queue still had {} requests in.", self.request_tx.len());
         while !self.request_tx.is_full() {
             let request = self.next_request();
             match self.request_tx.send(request) {
@@ -54,6 +62,7 @@ impl Renderer {
         let results = self.result_rx.try_iter().collect::<Vec<worker::RenderResult>>();
         results.iter().for_each(|result| {
             result.samples.iter().for_each(|(x, y, colour)| {
+                self.num_rays_cast += 1;
                 self.estimator.update_pixel(*x as usize, *y as usize, *colour);
             });
         });
