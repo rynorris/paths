@@ -27,7 +27,7 @@ impl Renderer {
         let estimator = Estimator::new(scene.camera.width as usize, scene.camera.height as usize);
         let pool = ThreadPool::new(num_workers);
 
-        let (request_tx, request_rx) = channel::bounded::<worker::RenderRequest>(1000);
+        let (request_tx, request_rx) = channel::bounded::<worker::RenderRequest>(100);
         let (result_tx, result_rx) = channel::unbounded::<worker::RenderResult>();
 
         // Spin up 4 workers.
