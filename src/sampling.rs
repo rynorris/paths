@@ -276,93 +276,34 @@ mod test {
         x >= 0.0 && x <= 1.0 && y >= 0.0 && y <= 1.0
     }
 
-    #[test]
-    fn test_uniform_disk() {
-        let pattern = UniformSampler::new(0, 2, 3).pattern::<Disk>();
+    macro_rules! test_sampler{
+        ($name:ident, $sampler:ident, $domain:ident, $checker:ident) => {
+            #[test]
+            fn $name() {
+                // Check we get the expected number of samplers.
+                let pattern = $sampler::new(42, 2, 3).pattern::<$domain>();
+                assert_eq!(pattern.count(), 6);
 
-        // Hard-code expected values to ensure that the seed is stable across test runs.
-        let expected = vec![
-            (0.27099483228008736, 0.3541936719985136),
-            (0.3199761067608373, 0.0034989080440785106),
-            (0.00018841126354844867, 0.00005758516026271694),
-            (0.4444775002102809, 0.35185244122547316),
-            (0.4535960961658139, 0.19369113347312825),
-            (0.34648254086248437, 0.32805505516760064),
-        ];
+                // Check the same seed produces the same results.
+                let pattern1 = $sampler::new(42, 2, 3).pattern::<$domain>();
+                let pattern2 = $sampler::new(42, 2, 3).pattern::<$domain>();
 
-        let actual = pattern.collect::<Vec<(f64, f64)>>();
-        assert_eq!(actual, expected);
-        for (x, y) in actual {
-            assert_eq!(is_in_unit_disk(x, y), true);
+                let actual1 = pattern1.collect::<Vec<(f64, f64)>>();
+                let actual2 = pattern2.collect::<Vec<(f64, f64)>>();
+
+                assert_eq!(actual1, actual2);
+
+                // Check a large sample to ensure all samples are in range.
+                let large_pattern = $sampler::new(42, 100, 100).pattern::<$domain>();
+                for (x, y) in large_pattern {
+                    assert_eq!($checker(x, y), true);
+                }
+            }
         }
     }
 
-    #[test]
-    fn test_uniform_square() {
-        let pattern = UniformSampler::new(0, 2, 3).pattern::<Square>();
-
-        // Hard-code expected values to ensure that the seed is stable across test runs.
-        let expected = vec![
-            (0.44597237179706917, 0.9176988201469243),
-            (0.3199952363009857, 0.010934468302049138),
-            (0.00019701485962841936, 0.29661887443159096),
-            (0.5668865747127068, 0.6696035669674656),
-            (0.49321970119103264, 0.4035738877175896),
-            (0.47714805914259006, 0.7580862631517262),
-        ];
-
-        let actual = pattern.collect::<Vec<(f64, f64)>>();
-        assert_eq!(actual, expected);
-        for (x, y) in actual {
-            assert_eq!(is_in_unit_square(x, y), true);
-        }
-    }
-
-    #[test]
-    fn test_cmj_disk() {
-        let pattern = CorrelatedMultiJitteredSampler::new(0, 2, 3).pattern::<Disk>();
-
-        // Hard-code expected values to ensure that the seed is stable across test runs.
-        let expected = vec![
-            (0.23288271976954444, 0.3020407408384594),
-            (-0.41231103969933375, -0.00884025347340132),
-            (-0.01713192576599384, 0.6485187612468607),
-            (0.38017576583611823, -0.7185092520948844),
-            (-0.7994905690029475, 0.35683991876591936),
-            (0.9139355167587502, -0.3308265058968712)
-        ];
-
-        let actual = pattern.collect::<Vec<(f64, f64)>>();
-        assert_eq!(actual, expected);
-
-        // Now test all values are within bounds using a very large pattern.
-        let large_pattern = CorrelatedMultiJitteredSampler::new(0, 100, 100).pattern::<Disk>();
-        for (x, y) in large_pattern {
-            assert_eq!(is_in_unit_disk(x, y), true);
-        }
-    }
-
-    #[test]
-    fn test_cmj_square() {
-        let pattern = CorrelatedMultiJitteredSampler::new(0, 2, 3).pattern::<Square>();
-
-        // Hard-code expected values to ensure that the seed is stable across test runs.
-        let expected = vec![
-            (0.14546297029350555, 0.14546297029350555),
-            (0.5034118768727529, 0.17007854353941954),
-            (0.25420341990294765, 0.4208700865696143),
-            (0.8274558249416957, 0.660789158275029),
-            (0.43318656421619134, 0.7665198975495247),
-            (0.9447243057970165, 0.9447243057970164)
-        ];
-
-        let actual = pattern.collect::<Vec<(f64, f64)>>();
-        assert_eq!(actual, expected);
-        
-        // Now test all values are within bounds using a very large pattern.
-        let large_pattern = CorrelatedMultiJitteredSampler::new(0, 100, 100).pattern::<Square>();
-        for (x, y) in large_pattern {
-            assert_eq!(is_in_unit_square(x, y), true);
-        }
-    }
+    test_sampler!(test_uniform_disk, UniformSampler, Disk, is_in_unit_disk);
+    test_sampler!(test_uniform_square, UniformSampler, Square, is_in_unit_square);
+    test_sampler!(test_cmj_disk, CorrelatedMultiJitteredSampler, Disk, is_in_unit_disk);
+    test_sampler!(test_cmj_square, CorrelatedMultiJitteredSampler, Square, is_in_unit_square);
 }
