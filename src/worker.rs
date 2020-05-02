@@ -4,6 +4,7 @@ use crossbeam::channel;
 
 use crate::colour::Colour;
 use crate::scene::Scene;
+use crate::sampling::{CorrelatedMultiJitteredSampler, Disk, IntoPattern, Square};
 use crate::trace::trace_ray;
 
 pub struct Worker {
@@ -24,10 +25,15 @@ impl Worker {
     pub fn run_forever(&self) {
         self.request_rx.iter().for_each(|req| {
             let mut camera = self.scene.camera.clone();
-            for _ in 0..req.num_samples {
-                camera.init_bundle();
+
+            let (m, n) = req.pattern_size;
+            let sensor_pattern = CorrelatedMultiJitteredSampler::random(m, n).pattern::<Square>();
+            let lens_pattern = CorrelatedMultiJitteredSampler::random(m, n).pattern::<Disk>();
+            let patterns = sensor_pattern.zip(lens_pattern);
+
+            patterns.for_each(|(sensor_sample, lens_sample)| {
                 let samples = req.iter_pixels().map(|(x, y)| {
-                    let (ray, weight) = camera.get_ray_for_pixel(x, y);
+                    let (ray, weight) = camera.get_ray_for_pixel(x, y, sensor_sample, lens_sample);
                     let colour = trace_ray(&self.scene, ray) * weight;
                     (x, y, colour)
                 }).collect();
@@ -35,10 +41,10 @@ impl Worker {
                 match self.result_tx.send(RenderResult{ samples }) {
                     Ok(_) => (),
                     Err(err) => {
-                        panic!("Failed to send samples to main thread: {:?}", err);
+                        panic!("Failed to send samples to main thread: {}", err);
                     },
                 }
-            }
+            });
         });
     }
 }
@@ -48,7 +54,7 @@ impl Worker {
 pub struct RenderRequest {
     pub top_left: (u32, u32),
     pub bottom_right: (u32, u32),
-    pub num_samples: u32,
+    pub pattern_size: (u32, u32),
 }
 
 impl RenderRequest {

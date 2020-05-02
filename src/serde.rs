@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::camera::Camera;
 use crate::colour::Colour;
 use crate::matrix::Matrix3;
-use crate::sampling::CorrelatedMultiJitteredSampler;
 use crate::vector::Vector3;
 use crate::geom;
 use crate::material::{BasicMaterial, Material};
@@ -109,10 +108,7 @@ pub struct CameraDescription {
 
 impl CameraDescription {
     pub fn to_camera(&self) -> Camera {
-        let mut camera = Camera::new(
-            self.image_width,
-            self.image_height,
-            Box::new(CorrelatedMultiJitteredSampler::new(42, 4, 4)));
+        let mut camera = Camera::new(self.image_width, self.image_height);
 
         camera.location = self.location.to_vector();
         camera.set_orientation(self.orientation.yaw, self.orientation.pitch, self.orientation.roll);
