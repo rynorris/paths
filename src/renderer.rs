@@ -4,9 +4,13 @@ use crossbeam::channel;
 use threadpool::ThreadPool;
 
 use crate::camera::{Camera, Image};
+use crate::matrix::Matrix3;
 use crate::pixels::Estimator;
 use crate::scene::Scene;
+use crate::vector::Vector3;
 use crate::worker;
+
+const PREVIEW_GRID_SIZE: usize = 4;
 
 pub struct Renderer {
     width: u32,
@@ -28,7 +32,7 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(camera: Camera, scene: Arc<Scene>, num_workers: usize) -> Renderer {
-        let estimator = Estimator::new(camera.width as usize, camera.height as usize);
+        let estimator = Estimator::new(camera.width as usize, camera.height as usize, PREVIEW_GRID_SIZE);
         let pool = ThreadPool::new(num_workers);
 
         let (request_tx, request_rx) = channel::bounded::<worker::RenderRequest>(200);
@@ -105,12 +109,22 @@ impl Renderer {
         }
     }
 
-    pub fn reorient_camera(&mut self, yaw: f64, pitch: f64, roll: f64) {
+    pub fn reorient_camera(&mut self, orientation: Matrix3) {
         let epoch = self.new_epoch();
         self.broadcast_command(worker::ControlMessage::new()
-            .cmd(worker::Command::ReorientCamera(yaw, pitch, roll))
+            .cmd(worker::Command::ReorientCamera(orientation))
             .cmd(worker::Command::SetEpoch(epoch))
         );
+        self.request_preview();
+    }
+
+    pub fn reposition_camera(&mut self, location: Vector3) {
+        let epoch = self.new_epoch();
+        self.broadcast_command(worker::ControlMessage::new()
+            .cmd(worker::Command::RepositionCamera(location))
+            .cmd(worker::Command::SetEpoch(epoch))
+        );
+        self.request_preview();
     }
 
     pub fn reset(&mut self) {
@@ -118,6 +132,7 @@ impl Renderer {
         self.broadcast_command(worker::ControlMessage::new()
             .cmd(worker::Command::SetEpoch(epoch))
         );
+        self.request_preview();
     }
 
     pub fn shutdown(&mut self) {
@@ -137,9 +152,23 @@ impl Renderer {
         self.block_num = 0;
         self.num_rays_cast = 0;
         self.quick_render = true;
-        self.estimator = Estimator::new(self.width as usize, self.height as usize);
+        self.estimator = Estimator::new(self.width as usize, self.height as usize, PREVIEW_GRID_SIZE);
         self.epoch += 1;
         self.epoch
+    }
+
+    fn request_preview(&mut self) {
+        for x in (0..self.width).step_by(PREVIEW_GRID_SIZE) {
+            for y in (0..self.height).step_by(PREVIEW_GRID_SIZE) {
+                let req = worker::RenderRequest{
+                    epoch: self.epoch,
+                    top_left: (x, y),
+                    bottom_right: (x, y),
+                    pattern_size: (1, 1),
+                };
+                self.request_tx.send(req).expect("Can send request.");
+            }
+        }
     }
 
     fn next_request(&mut self) -> worker::RenderRequest {
