@@ -81,13 +81,14 @@ impl Camera {
 
         // this equation for ray direction precomputed by hand to collapse all the terms that go away.
         let dir = ((k * (p/v)) + l) * -1;
+        let norm_dir = dir.normed();
 
         // Now transform into world space.
         let origin = self.rot.clone() * l + self.location;
-        let direction = (self.rot.clone() * dir).normed();
+        let direction = self.rot.clone() * norm_dir;
 
         // Weight is d.n, but sinze n is just (0,0,1) we can shortcut.
-        let weight = direction.z;
+        let weight = norm_dir.z;
 
         (Ray::new(origin, direction), weight)
     }
