@@ -30,7 +30,7 @@ use crate::renderer::Renderer;
 use crate::serde::SceneDescription;
 
 use sdl2;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::{Keycode, Scancode};
 use serde_yaml;
 
 const SCALE: u32 = 1;
@@ -60,6 +60,7 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video = sdl_context.video().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
+    let mouse = sdl_context.mouse();
 
     let mut main_window = video.window("Path Tracer", width * SCALE as u32, height * SCALE as u32)
         .position_centered()
@@ -95,6 +96,8 @@ fn main() {
     let frames_per_second: u32 = 60;
     let mut governer = timing::Governer::new(60);
 
+    let mut camera_locked = true;
+
     controller.reset();
     while is_running {
         controller.update();
@@ -102,8 +105,9 @@ fn main() {
 
         let num_rays = controller.num_rays_cast();
         let rays_per_pixel = num_rays / num_pixels;
+        let fps = governer.current_fps();
         if frame_count % frames_per_second == 0 {
-            println!("[{:.1?}] Num rays: {} (avg {} per pixel)", start_time.elapsed(), num_rays, rays_per_pixel);
+            println!("[{:.1?}][{:.1}] Num rays: {} (avg {} per pixel)", start_time.elapsed(), fps, num_rays, rays_per_pixel);
         }
 
         for ix in 0 .. image.pixels.len() {
@@ -119,26 +123,52 @@ fn main() {
         canvas.copy(&output_texture, None, None).expect("Failed to copy texture to canvas");
         canvas.present();
 
+        // Handle point-in-time key events.
         while let Some(e) = event_pump.poll_event() {
             match e {
                 sdl2::event::Event::KeyDown { keycode, .. } => match keycode {
                    Some(Keycode::Escape) => is_running = false,
-                   Some(Keycode::Return) => controller.reset(),
-                   Some(Keycode::W) => controller.move_camera(0.0, 0.0, 1.0),
-                   Some(Keycode::S) => controller.move_camera(0.0, 0.0, -1.0),
-                   Some(Keycode::A) => controller.move_camera(-1.0, 0.0, 0.0),
-                   Some(Keycode::D) => controller.move_camera(1.0, 0.0, 0.0),
-                   Some(Keycode::LShift) => controller.move_camera(0.0, -1.0, 0.0),
-                   Some(Keycode::Space) => controller.move_camera(0.0, 1.0, 0.0),
-                   Some(Keycode::O) => controller.rotate(0.0, 0.0, -0.1),
-                   Some(Keycode::U) => controller.rotate(0.0, 0.0, 0.1),
-                   Some(Keycode::I) => controller.rotate(0.0, -0.1, 0.0),
-                   Some(Keycode::K) => controller.rotate(0.0, 0.1, 0.0),
-                   Some(Keycode::J) => controller.rotate(-0.1, 0.0, 0.0),
-                   Some(Keycode::L) => controller.rotate(0.1, 0.0, 0.0),
+                   Some(Keycode::Return) => { 
+                       camera_locked = !camera_locked;
+                       mouse.set_relative_mouse_mode(!camera_locked);
+                       mouse.show_cursor(camera_locked);
+                       if !camera_locked {
+                           controller.reset();
+                       }
+                   },
+                   Some(Keycode::Q) => controller.rotate(0.0, 0.0, -0.1),
+                   Some(Keycode::E) => controller.rotate(0.0, 0.0, 0.1),
                    _ => (),
                 },
+                sdl2::event::Event::MouseMotion { xrel, yrel, .. } => {
+                    if !camera_locked {
+                        controller.rotate((xrel as f64) / 100.0, (yrel as f64) / 100.0, 0.0);
+                    }
+                },
                 _ => (),
+            }
+        }
+
+        // Handle held keys.
+        let mut velocity = vector::Vector3::new(0.0, 0.0, 0.0);
+        let mut vw = 0.0;
+        event_pump.keyboard_state().pressed_scancodes().for_each(|scancode| {
+            match scancode {
+                Scancode::W => velocity.z += 0.5,
+                Scancode::S => velocity.z -= 0.5,
+                Scancode::A => velocity.x -= 0.5,
+                Scancode::D => velocity.x += 0.5,
+                Scancode::Q => vw += 0.1,
+                Scancode::E => vw -= 0.1,
+                Scancode::LShift => velocity.y -= 0.5,
+                Scancode::Space => velocity.y += 0.5,
+                _ => (),
+            }
+        });
+        if !camera_locked {
+            controller.move_camera(velocity);
+            if vw != 0.0 {
+                controller.rotate(0.0, 0.0, vw);
             }
         }
 

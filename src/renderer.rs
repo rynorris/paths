@@ -10,7 +10,7 @@ use crate::scene::Scene;
 use crate::vector::Vector3;
 use crate::worker;
 
-const PREVIEW_GRID_SIZE: usize = 4;
+const PREVIEW_GRID_SIZE: usize = 6;
 
 pub struct Renderer {
     width: u32,
@@ -109,19 +109,11 @@ impl Renderer {
         }
     }
 
-    pub fn reorient_camera(&mut self, orientation: Matrix3) {
-        let epoch = self.new_epoch();
-        self.broadcast_command(worker::ControlMessage::new()
-            .cmd(worker::Command::ReorientCamera(orientation))
-            .cmd(worker::Command::SetEpoch(epoch))
-        );
-        self.request_preview();
-    }
-
-    pub fn reposition_camera(&mut self, location: Vector3) {
+    pub fn set_camera(&mut self, location: Vector3, orientation: Matrix3) {
         let epoch = self.new_epoch();
         self.broadcast_command(worker::ControlMessage::new()
             .cmd(worker::Command::RepositionCamera(location))
+            .cmd(worker::Command::ReorientCamera(orientation))
             .cmd(worker::Command::SetEpoch(epoch))
         );
         self.request_preview();
@@ -200,7 +192,6 @@ impl Renderer {
     }
 
     fn broadcast_command(&self, msg: worker::ControlMessage) {
-        println!("Sending command to workers: {:?}", msg);
         self.control_txs.iter().for_each(|tx| {
             tx.send(msg.clone()).expect("Should succeed to send control messages.");
         });
