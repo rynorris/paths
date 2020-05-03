@@ -88,6 +88,10 @@ pub fn parse_obj<R>(mut reader: R) -> Model where R : Read {
     object(input).unwrap().1
 }
 
+named!(newline(CompleteStr) -> (),
+    do_parse!(opt!(char!('\r')) >> char!('\n') >> ())
+);
+
 named!(index(CompleteStr) -> usize, map_res!(recognize!(digit), |c: CompleteStr| usize::from_str(*c)));
 
 named!(float(CompleteStr) -> f64, call!(double));
@@ -118,9 +122,9 @@ named!(face(CompleteStr) -> (usize, usize, usize),
     )
 );
 
-named!(vertices(CompleteStr) -> Vec<Vector3>, many1!(terminated!(vertex, opt!(char!('\n')))));
+named!(vertices(CompleteStr) -> Vec<Vector3>, many1!(terminated!(vertex, opt!(newline))));
 
-named!(faces(CompleteStr) -> Vec<(usize, usize, usize)>, many1!(terminated!(face, opt!(char!('\n')))));
+named!(faces(CompleteStr) -> Vec<(usize, usize, usize)>, many1!(terminated!(face, opt!(newline))));
 
 named!(object(CompleteStr) -> Model,
     do_parse!(
