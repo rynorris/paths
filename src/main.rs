@@ -94,6 +94,7 @@ fn main() {
     let frames_per_second: u32 = 60;
     let mut governer = timing::Governer::new(60);
 
+    renderer.reset();
     renderer.fill_request_queue();
     while is_running {
         renderer.drain_result_queue();
@@ -129,8 +130,8 @@ fn main() {
                    Some(Keycode::U) => roll += 0.1,
                    Some(Keycode::I) => pitch -= 0.1,
                    Some(Keycode::K) => pitch += 0.1,
-                   Some(Keycode::J) => yaw += 0.1,
-                   Some(Keycode::L) => yaw -= 0.1,
+                   Some(Keycode::J) => yaw -= 0.1,
+                   Some(Keycode::L) => yaw += 0.1,
                    _ => should_reset = false,
                 },
                 _ => should_reset = false,

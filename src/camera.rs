@@ -46,11 +46,16 @@ impl Camera {
 
     pub fn get_ray_for_pixel(
         &self,
-        x: u32,
-        y: u32,
+        mut x: u32,
+        mut y: u32,
         point_on_square: (f64, f64),
         point_on_disk: (f64, f64)
     ) -> (Ray, f64) {
+        // The image on a camera lens is flipped, so reflect x and y so that
+        // we get the pixel that was actually asked for.
+        x = self.width - x - 1;
+        y = self.height - y - 1;
+        
         // We'll compute the outbound ray first in lens-space where the centre of 
         // the lens is at the origin.
         // Then transform into world space.

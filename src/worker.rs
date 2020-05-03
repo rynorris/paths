@@ -13,6 +13,7 @@ pub struct Worker {
     request_rx: channel::Receiver<RenderRequest>,
     result_tx: channel::Sender<RenderResult>,
     control_rx: channel::Receiver<ControlMessage>,
+    future_req_buf: Vec<RenderRequest>,
     scene: Arc<Scene>,
     camera: Camera,
     epoch: u64,
@@ -29,6 +30,7 @@ impl Worker {
     ) -> Worker {
         Worker{
             request_rx, result_tx, control_rx,
+            future_req_buf: Vec::new(),
             scene,
             camera,
             epoch: 0,
@@ -51,9 +53,13 @@ impl Worker {
         }
     }
 
-    fn handle_render_req(&self, req: RenderRequest) {
-        // Ignore if from a different epoch.
-        if req.epoch != self.epoch {
+    fn handle_render_req(&mut self, req: RenderRequest) {
+        if req.epoch < self.epoch {
+            // Ignore if from an earlier epoch.
+            return;
+        } else if req.epoch > self.epoch {
+            // Queue if from a later epoch.
+            self.future_req_buf.push(req);
             return;
         }
 
@@ -85,6 +91,15 @@ impl Worker {
                 Command::SetEpoch(epoch) => self.epoch = *epoch,
                 Command::ReorientCamera(yaw, pitch, roll) => self.camera.set_orientation(*yaw, *pitch, *roll),
             }
+        });
+        self.process_buffered_reqs();
+    }
+
+    fn process_buffered_reqs(&mut self) {
+        let reqs = self.future_req_buf.clone();
+        self.future_req_buf = Vec::with_capacity(reqs.len());
+        reqs.iter().for_each(|req| {
+            self.handle_render_req(*req);
         });
     }
 }
