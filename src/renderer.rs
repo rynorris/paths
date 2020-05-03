@@ -10,7 +10,7 @@ use crate::scene::Scene;
 use crate::vector::Vector3;
 use crate::worker;
 
-const PREVIEW_GRID_SIZE: usize = 4;
+const PREVIEW_GRID_SIZE: usize = 8;
 
 pub struct Renderer {
     width: u32,

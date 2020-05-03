@@ -11,7 +11,7 @@ pub struct Controller {
 
 impl Controller {
     pub fn new(renderer: Renderer, location: Vector3, orientation: Matrix3) -> Controller {
-        Controller{ renderer, location, orientation }
+        Controller{ renderer, location, orientation, }
     }
 
     pub fn update(&mut self) {
@@ -23,8 +23,12 @@ impl Controller {
         self.renderer.render()
     }
 
-    pub fn move_camera(&mut self, x: f64, y: f64, z: f64) {
-        let movement = self.orientation * Vector3::new(x, y, z);
+    pub fn move_camera(&mut self, v: Vector3) {
+        if v.x == 0.0 && v.y == 0.0 && v.z == 0.0 {
+            return;
+        }
+
+        let movement = self.orientation * v;
         self.location = self.location + movement;
         self.renderer.reposition_camera(self.location);
     }
