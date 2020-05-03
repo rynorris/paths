@@ -121,6 +121,7 @@ impl CameraDescription {
         camera.sensor_width = self.sensor_width;
         camera.sensor_height = self.sensor_height;
         camera.focal_length = self.focal_length;
+        camera.aperture = self.aperture;
 
         camera.distance_from_lens = (self.focal_length * self.focus_distance) / (self.focus_distance - self.focal_length);
         camera
