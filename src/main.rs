@@ -4,6 +4,7 @@
 pub mod bvh;
 pub mod camera;
 pub mod colour;
+pub mod controller;
 pub mod geom;
 pub mod material;
 pub mod matrix;
@@ -24,6 +25,7 @@ use std::fs::File;
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::controller::Controller;
 use crate::renderer::Renderer;
 use crate::serde::SceneDescription;
 
@@ -78,11 +80,10 @@ fn main() {
         Ok(t) => t,
     };
 
-    let mut yaw: f64 = scene_description.camera.orientation.yaw;
-    let mut pitch: f64 = scene_description.camera.orientation.pitch;
-    let mut roll: f64 = scene_description.camera.orientation.roll;
-
-    let mut renderer = Renderer::new(camera, Arc::new(scene), 4);
+    let location = camera.location;
+    let orientation = camera.rot;
+    let renderer = Renderer::new(camera, Arc::new(scene), 4);
+    let mut controller = Controller::new(renderer, location, orientation);
 
     let mut texture_buffer: Vec<u8> = vec![0; (width * height * 3) as usize];
 
@@ -94,14 +95,12 @@ fn main() {
     let frames_per_second: u32 = 60;
     let mut governer = timing::Governer::new(60);
 
-    renderer.reset();
-    renderer.fill_request_queue();
+    controller.reset();
     while is_running {
-        renderer.drain_result_queue();
-        renderer.fill_request_queue();
-        let image = renderer.render();
+        controller.update();
+        let image = controller.render();
 
-        let num_rays = renderer.num_rays_cast();
+        let num_rays = controller.num_rays_cast();
         let rays_per_pixel = num_rays / num_pixels;
         if frame_count % frames_per_second == 0 {
             println!("[{:.1?}] Num rays: {} (avg {} per pixel)", start_time.elapsed(), num_rays, rays_per_pixel);
@@ -121,24 +120,25 @@ fn main() {
         canvas.present();
 
         while let Some(e) = event_pump.poll_event() {
-            let mut should_reset = true;
             match e {
                 sdl2::event::Event::KeyDown { keycode, .. } => match keycode {
                    Some(Keycode::Escape) => is_running = false,
-                   Some(Keycode::Return) => (),
-                   Some(Keycode::O) => roll -= 0.1,
-                   Some(Keycode::U) => roll += 0.1,
-                   Some(Keycode::I) => pitch -= 0.1,
-                   Some(Keycode::K) => pitch += 0.1,
-                   Some(Keycode::J) => yaw -= 0.1,
-                   Some(Keycode::L) => yaw += 0.1,
-                   _ => should_reset = false,
+                   Some(Keycode::Return) => controller.reset(),
+                   Some(Keycode::W) => controller.move_camera(0.0, 0.0, 1.0),
+                   Some(Keycode::S) => controller.move_camera(0.0, 0.0, -1.0),
+                   Some(Keycode::A) => controller.move_camera(-1.0, 0.0, 0.0),
+                   Some(Keycode::D) => controller.move_camera(1.0, 0.0, 0.0),
+                   Some(Keycode::LShift) => controller.move_camera(0.0, -1.0, 0.0),
+                   Some(Keycode::Space) => controller.move_camera(0.0, 1.0, 0.0),
+                   Some(Keycode::O) => controller.rotate(0.0, 0.0, -0.1),
+                   Some(Keycode::U) => controller.rotate(0.0, 0.0, 0.1),
+                   Some(Keycode::I) => controller.rotate(0.0, -0.1, 0.0),
+                   Some(Keycode::K) => controller.rotate(0.0, 0.1, 0.0),
+                   Some(Keycode::J) => controller.rotate(-0.1, 0.0, 0.0),
+                   Some(Keycode::L) => controller.rotate(0.1, 0.0, 0.0),
+                   _ => (),
                 },
-                _ => should_reset = false,
-            }
-
-            if should_reset {
-                renderer.reorient_camera(yaw, pitch, roll);
+                _ => (),
             }
         }
 
@@ -148,5 +148,5 @@ fn main() {
     }
 
     // Shutdown.
-    renderer.shutdown();
+    controller.shutdown();
 }

@@ -4,8 +4,10 @@ use crossbeam::channel;
 use threadpool::ThreadPool;
 
 use crate::camera::{Camera, Image};
+use crate::matrix::Matrix3;
 use crate::pixels::Estimator;
 use crate::scene::Scene;
+use crate::vector::Vector3;
 use crate::worker;
 
 const PREVIEW_GRID_SIZE: usize = 4;
@@ -107,10 +109,19 @@ impl Renderer {
         }
     }
 
-    pub fn reorient_camera(&mut self, yaw: f64, pitch: f64, roll: f64) {
+    pub fn reorient_camera(&mut self, orientation: Matrix3) {
         let epoch = self.new_epoch();
         self.broadcast_command(worker::ControlMessage::new()
-            .cmd(worker::Command::ReorientCamera(yaw, pitch, roll))
+            .cmd(worker::Command::ReorientCamera(orientation))
+            .cmd(worker::Command::SetEpoch(epoch))
+        );
+        self.request_preview();
+    }
+
+    pub fn reposition_camera(&mut self, location: Vector3) {
+        let epoch = self.new_epoch();
+        self.broadcast_command(worker::ControlMessage::new()
+            .cmd(worker::Command::RepositionCamera(location))
             .cmd(worker::Command::SetEpoch(epoch))
         );
         self.request_preview();

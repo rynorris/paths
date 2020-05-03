@@ -5,9 +5,11 @@ use crossbeam::channel::select;
 
 use crate::camera::Camera;
 use crate::colour::Colour;
+use crate::matrix::Matrix3;
 use crate::scene::Scene;
 use crate::sampling::{CorrelatedMultiJitteredSampler, Disk, IntoPattern, Square};
 use crate::trace::trace_ray;
+use crate::vector::Vector3;
 
 pub struct Worker {
     request_rx: channel::Receiver<RenderRequest>,
@@ -89,7 +91,8 @@ impl Worker {
             match cmd {
                 Command::Shutdown => self.is_running = false,
                 Command::SetEpoch(epoch) => self.epoch = *epoch,
-                Command::ReorientCamera(yaw, pitch, roll) => self.camera.set_orientation(*yaw, *pitch, *roll),
+                Command::ReorientCamera(orientation) => self.camera.set_orientation(*orientation),
+                Command::RepositionCamera(location) => self.camera.set_position(*location),
             }
         });
         self.process_buffered_reqs();
@@ -124,7 +127,8 @@ impl ControlMessage {
 pub enum Command {
     Shutdown,
     SetEpoch(u64),
-    ReorientCamera(f64, f64, f64),
+    ReorientCamera(Matrix3),
+    RepositionCamera(Vector3),
 }
 
 

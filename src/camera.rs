@@ -15,7 +15,7 @@ pub struct Camera {
     pub focal_length: f64,
     pub distance_from_lens: f64,
     pub aperture: f64,
-    rot: Matrix3,
+    pub rot: Matrix3,
     pub sensor_width: f64,
     pub sensor_height: f64,
     pub width: u32,
@@ -92,7 +92,11 @@ impl Camera {
         (Ray::new(origin, direction), weight)
     }
 
-    pub fn set_orientation(&mut self, yaw: f64, pitch: f64, roll: f64) {
-        self.rot = Matrix3::rotation(yaw, pitch, roll);
+    pub fn set_orientation(&mut self, orientation: Matrix3) {
+        self.rot = orientation;
+    }
+
+    pub fn set_position(&mut self, location: Vector3) {
+        self.location = location;
     }
 }

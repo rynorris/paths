@@ -115,7 +115,8 @@ impl CameraDescription {
         let mut camera = Camera::new(self.image_width, self.image_height);
 
         camera.location = self.location.to_vector();
-        camera.set_orientation(self.orientation.yaw, self.orientation.pitch, self.orientation.roll);
+        let orientation = Matrix3::rotation(self.orientation.yaw, self.orientation.pitch, self.orientation.roll);
+        camera.set_orientation(orientation);
 
         camera.sensor_width = self.sensor_width;
         camera.sensor_height = self.sensor_height;
