@@ -7,14 +7,30 @@ pub struct Controller {
     renderer: Renderer,
     location: Vector3,
     orientation: Matrix3,
+
+    next_location: Vector3,
+    next_orientation: Matrix3,
 }
 
 impl Controller {
     pub fn new(renderer: Renderer, location: Vector3, orientation: Matrix3) -> Controller {
-        Controller{ renderer, location, orientation, }
+        Controller{
+            renderer,
+            location,
+            orientation,
+            next_location: location,
+            next_orientation: orientation,
+        }
     }
 
     pub fn update(&mut self) {
+        if self.location != self.next_location || self.orientation != self.next_orientation {
+            self.renderer.set_camera(self.next_location, self.next_orientation);
+        }
+
+        self.location = self.next_location;
+        self.orientation = self.next_orientation;
+
         self.renderer.fill_request_queue();
         self.renderer.drain_result_queue();
     }
@@ -29,14 +45,12 @@ impl Controller {
         }
 
         let movement = self.orientation * v;
-        self.location = self.location + movement;
-        self.renderer.reposition_camera(self.location);
+        self.next_location = self.next_location + movement;
     }
 
     pub fn rotate(&mut self, yaw: f64, pitch: f64, roll: f64) {
         let rot = Matrix3::rotation(yaw, pitch, roll);
-        self.orientation = self.orientation * rot;
-        self.renderer.reorient_camera(self.orientation);
+        self.next_orientation = self.next_orientation * rot;
     }
 
     pub fn reset(&mut self) {

@@ -6,6 +6,7 @@ pub struct Governer {
     frames_per_second: u32,
     frame_duration: Duration,
     frame_times_q: VecDeque<Instant>,
+    current_fps: f64,
 }
 
 impl Governer {
@@ -19,6 +20,7 @@ impl Governer {
             frames_per_second,
             frame_duration,
             frame_times_q,
+            current_fps: 0.0,
         }
     }
 
@@ -35,6 +37,9 @@ impl Governer {
             now.duration_since(*oldest_frame_start)
         };
 
+        let nanos_per_frame = actual_duration.as_nanos() / (num_frames_in_q as u128);
+        self.current_fps = 1_000_000_000.0 / (nanos_per_frame as f64);
+
         self.frame_times_q.push_front(now);
 
         // Sleep if we're ahead.
@@ -44,5 +49,9 @@ impl Governer {
         }
 
         self.frame_times_q.truncate(self.frames_per_second as usize);
+    }
+
+    pub fn current_fps(&self) -> f64 {
+        self.current_fps
     }
 }

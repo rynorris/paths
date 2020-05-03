@@ -105,8 +105,9 @@ fn main() {
 
         let num_rays = controller.num_rays_cast();
         let rays_per_pixel = num_rays / num_pixels;
+        let fps = governer.current_fps();
         if frame_count % frames_per_second == 0 {
-            println!("[{:.1?}] Num rays: {} (avg {} per pixel)", start_time.elapsed(), num_rays, rays_per_pixel);
+            println!("[{:.1?}][{:.1}] Num rays: {} (avg {} per pixel)", start_time.elapsed(), fps, num_rays, rays_per_pixel);
         }
 
         for ix in 0 .. image.pixels.len() {
@@ -129,7 +130,7 @@ fn main() {
                    Some(Keycode::Escape) => is_running = false,
                    Some(Keycode::Return) => { 
                        camera_locked = !camera_locked;
-                       mouse.capture(!camera_locked);
+                       mouse.set_relative_mouse_mode(!camera_locked);
                        mouse.show_cursor(camera_locked);
                        if !camera_locked {
                            controller.reset();
