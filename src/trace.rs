@@ -37,6 +37,37 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
 
         colour += emittance * throughput;
 
+        // Next Event Estimation.
+        let direct_illumination = match scene.random_light() {
+            Some(light) => {
+                let distance_to_light_squared = (light.point - collision.location).magnitude();
+                let direction = (light.point - collision.location).normed();
+                let shadow_ray = Ray::new(
+                    collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
+                    direction
+                );
+
+                let occluded = match scene.find_intersection(shadow_ray) {
+                    Some((col, _)) => {
+                        (col.distance * col.distance) < distance_to_light_squared
+                    },
+                    None => false,
+                };
+
+                if occluded {
+                    Colour::BLACK
+                } else {
+                    let base = light.colour * light.intensity;
+                    let brdf = material.brdf(ray.direction * -1, shadow_ray.direction * -1, collision.normal);
+                    let solid_angle = 1.0 / distance_to_light_squared;
+                    base * brdf * solid_angle * (collision.normal.dot(shadow_ray.direction))
+                }
+            },
+            None => Colour::BLACK,
+        };
+
+        colour += direct_illumination * throughput;
+
         // Chance for the material to eat the ray.
         let survival_chance = throughput.max();
         if rand::thread_rng().gen::<f64>() > survival_chance {

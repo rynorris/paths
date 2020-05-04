@@ -11,14 +11,17 @@ camera:
 
 skybox:
   type: Gradient
-  overhead_colour: { r: 0.5, g: 0.8, b: 0.9 }
-  horizon_colour: { r: 0.7, g: 0.85, b: 0.9 }
+  overhead_colour: { r: 0.1, g: 0.1, b: 0.1 }
+  horizon_colour: { r: 0.0, g: 0.0, b: 0.0 }
 
 models:
   teapot:
     file: "./scenes/objects/teapot.obj"
 
-lights: []
+lights:
+  - point: { x: 10.0, y: 5.0, z: -10.0 }
+    colour: { r: 1.0, g: 1.0, b: 1.0 }
+    intensity: 200.0
 
 objects:
   - shape:

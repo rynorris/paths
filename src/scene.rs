@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use rand;
+use rand::Rng;
 
 use crate::bvh::{construct_bvh_aac, BVH};
 use crate::colour::Colour;
@@ -99,5 +101,14 @@ impl Scene {
                 _ => None,
             }
         }).flatten()
+    }
+
+    pub fn random_light(&self) -> Option<&Light> {
+        if self.lights.len() > 0 {
+            let id = rand::thread_rng().gen_range(0, self.lights.len());
+            Some(&self.lights[id])
+        } else {
+            None
+        }
     }
 }
