@@ -1,0 +1,64 @@
+camera:
+  image_width: 720
+  image_height: 480
+  location: { x: 3.0, y: 15.0, z: -15.0 }
+  orientation: { pitch: 0.65, yaw: -0.15, roll: 0.0 }
+  sensor_width: 0.036
+  sensor_height: 0.024
+  focal_length: 0.05
+  focus_distance: 15.0
+  aperture: 8.0
+
+skybox:
+  type: Gradient
+  overhead_colour: { r: 0.1, g: 0.1, b: 0.1 }
+  horizon_colour: { r: 0.0, g: 0.0, b: 0.0 }
+
+models:
+  bunny:
+    file: "./scenes/objects/bunny.obj"
+  dragon:
+    file: "./dragon_recon/dragon_vrip.ply"
+  teapot:
+    file: "./scenes/objects/teapot.obj"
+
+lights:
+  - colour: { r: 0.8, g: 0.8, b: 0.8 }
+    intensity: 2000.0
+    geometry:
+      type: Sphere
+      center: { x: 10.0, y: 20.0, z: -5.0 }
+      radius: 5.0
+
+objects:
+  - shape:
+      type: Mesh
+      model: dragon
+      translation: { x: 0.0, y: -2.5, z: 0.0 }
+      rotation: { pitch: 3.1, yaw: 0.0, roll: 0.0 }
+      scale: 50.0
+    material:
+      type: Fresnel
+      refractive_index: 5.5
+      diffuse:
+        type: Lambertian
+        albedo: { r: 0.3, g: 0.6, b: 0.3 }
+      specular: 
+        type: CookTorrance
+        albedo: { r: 1.0, g: 1.0, b: 1.0 }
+        roughness: 0.02
+
+  - shape:
+      type: Sphere
+      radius: 1000000.0
+      center: { x: 0.0, y: -1000000.0, z: 0.0 }
+    material:
+      type: Fresnel
+      refractive_index: 3.5
+      diffuse:
+        type: Lambertian
+        albedo: { r: 0.2, g: 0.2, b: 0.2 }
+      specular: 
+        type: CookTorrance
+        albedo: { r: 1.0, g: 1.0, b: 1.0 }
+        roughness: 0.001
