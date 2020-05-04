@@ -27,7 +27,7 @@ pub fn generate_stress_scene(num_spheres: usize) -> serde::SceneDescription {
         colour: serde::ColourDescription{ r: 0.8, g: 0.8, b: 0.8 },
     });
 
-    serde::SceneDescription{ camera, models, skybox, objects }
+    serde::SceneDescription{ camera, models, skybox, objects, lights: vec![] }
 }
 
 fn random_sphere() -> serde::ShapeDescription {

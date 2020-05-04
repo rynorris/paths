@@ -46,6 +46,7 @@ pub struct RotationDescription {
 pub struct SceneDescription {
     pub camera: CameraDescription,
     pub objects: Vec<ObjectDescription>,
+    pub lights: Vec<LightDescription>,
     pub skybox: SkyboxDescription,
 
     #[serde(default)]
@@ -60,6 +61,7 @@ impl SceneDescription {
     pub fn scene(&self) -> scene::Scene {
         let mut model_library: scene::ModelLibrary = HashMap::with_capacity(self.models.len());
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
+        let mut lights: Vec<scene::Light> = Vec::with_capacity(self.lights.len());
 
         self.models.iter().for_each(|(name, desc)| {
             println!("Loading model '{}' from '{}'", name, desc.file);
@@ -93,7 +95,16 @@ impl SceneDescription {
             });
         });
 
-        scene::Scene::new(model_library, objects, self.skybox.to_skybox())
+        self.lights.iter().enumerate().for_each(|(ix, l)| {
+            lights.push(scene::Light{
+                id: ix,
+                point: l.point.to_vector(),
+                colour: l.colour.to_colour(),
+                intensity: l.intensity,
+            });
+        });
+
+        scene::Scene::new(model_library, objects, lights, self.skybox.to_skybox())
     }
 }
 
@@ -139,6 +150,13 @@ pub struct ModelDescription {
 pub struct ObjectDescription {
     pub shape: ShapeDescription,
     pub material: MaterialDescription,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LightDescription {
+    pub point: VectorDescription,
+    pub colour: ColourDescription,
+    pub intensity: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

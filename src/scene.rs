@@ -19,6 +19,14 @@ pub struct Object {
     pub material: Material,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Light {
+    pub id: usize,
+    pub point: Vector3,
+    pub colour: Colour,
+    pub intensity: f64,
+}
+
 pub type Model = Vec<Primitive>;
 
 pub type ModelLibrary = HashMap<String, Model>;
@@ -63,11 +71,12 @@ pub struct GradientSky {
 pub struct Scene {
     pub skybox: Skybox,
     objects: Vec<Object>,
+    lights: Vec<Light>,
     bvh: BVH<EntityID>,
 }
 
 impl Scene {
-    pub fn new(model_library: ModelLibrary, objects: Vec<Object>, skybox: Skybox) -> Scene {
+    pub fn new(model_library: ModelLibrary, objects: Vec<Object>, lights: Vec<Light>, skybox: Skybox) -> Scene {
         let primitive_geometry = objects.iter()
             .map(|o| {
                 let id = o.id;
@@ -80,7 +89,7 @@ impl Scene {
             .flat_map(|items: Vec<(Primitive, EntityID)>| { items.into_iter() })
             .collect();
         let bvh = construct_bvh_aac(primitive_geometry);
-        Scene { skybox, objects, bvh }
+        Scene { skybox, objects, lights, bvh }
     }
 
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Material)> {
