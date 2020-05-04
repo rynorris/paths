@@ -20,12 +20,15 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [x] Glossy materials
 - [x] Microfacet specular model
 - [x] Camera lens simulation
+- [x] Next event estimation
 - [ ] Translucent materials (refraction)
 - [ ] Subsurface scattering
-- [ ] Direct lighting
 - [ ] Bi-directional path tracing
 
 ### Examples
+
+[2020/05/04] Next event estimation to efficiently simulate point/area light sources
+![image](https://user-images.githubusercontent.com/3620166/80952676-01090280-8e35-11ea-9580-db4ec2e045bc.png)
 
 [2020/04/22] Microfacet model to create shiny, rough teapot material
 ![image](https://user-images.githubusercontent.com/3620166/79968000-87832300-84ca-11ea-9807-384fef0dbc7e.png)
