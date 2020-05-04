@@ -59,12 +59,12 @@ impl SceneDescription {
 
     pub fn scene(&self) -> scene::Scene {
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
-        let mut models: HashMap<String, Vec<geom::Shape>> = HashMap::with_capacity(self.models.len());
+        let mut models: HashMap<String, Vec<geom::Primitive>> = HashMap::with_capacity(self.models.len());
 
         self.models.iter().for_each(|(name, desc)| {
             println!("Loading model '{}' from '{}'", name, desc.file);
             let model = obj::load_obj_file(&desc.file);
-            let triangles: Vec<geom::Shape> = model.resolve_triangles().iter()
+            let triangles: Vec<geom::Primitive> = model.resolve_triangles().iter()
                 .map(|v| *v)
                 .collect();
             models.insert(name.clone(), triangles);
@@ -72,15 +72,15 @@ impl SceneDescription {
 
         self.objects.iter().for_each(|o| {
             let material: Material = (&o.material).into();
-            let shapes: Vec<geom::Shape> = match o.shape {
+            let shapes: Vec<geom::Primitive> = match o.shape {
                 ShapeDescription::Sphere(ref shp) => vec![
-                    geom::Shape::sphere(shp.center.to_vector(), shp.radius)
+                    geom::Primitive::sphere(shp.center.to_vector(), shp.radius)
                 ],
                 ShapeDescription::Mesh(ref shp) => {
                     println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
-                    let triangles: Vec<geom::Shape> = models.get(&shp.model).unwrap().iter()
+                    let triangles: Vec<geom::Primitive> = models.get(&shp.model).unwrap().iter()
                         .map(|t| t.transform(translation, rotation.clone(), shp.scale))
                         .collect();
                     triangles

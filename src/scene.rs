@@ -1,12 +1,12 @@
 use crate::bvh::{construct_bvh_aac, BVH};
 use crate::colour::Colour;
-use crate::geom::{AABB, BoundedVolume, Collision, Shape, Ray};
+use crate::geom::{AABB, BoundedVolume, Collision, Primitive, Ray};
 use crate::material::Material;
 use crate::vector::Vector3;
 
 #[derive(Clone)]
 pub struct Object {
-    pub shape: Shape,
+    pub shape: Primitive,
     pub material: Material,
 }
 
