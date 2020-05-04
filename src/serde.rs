@@ -98,7 +98,7 @@ impl SceneDescription {
         self.lights.iter().enumerate().for_each(|(ix, l)| {
             lights.push(scene::Light{
                 id: ix,
-                point: l.point.to_vector(),
+                geometry: l.geometry.to_light_geometry(),
                 colour: l.colour.to_colour(),
                 intensity: l.intensity,
             });
@@ -154,9 +154,27 @@ pub struct ObjectDescription {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LightDescription {
-    pub point: VectorDescription,
+    pub geometry: LightGeometryDescription,
     pub colour: ColourDescription,
     pub intensity: f64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum LightGeometryDescription {
+    Point(VectorDescription),
+    Sphere(SphereDescription),
+}
+
+impl LightGeometryDescription {
+    pub fn to_light_geometry(&self) -> scene::LightGeometry {
+        match self {
+            LightGeometryDescription::Point(v) => scene::LightGeometry::Point(v.to_vector()),
+            LightGeometryDescription::Sphere(s) => scene::LightGeometry::Area(
+                geom::Primitive::sphere(s.center.to_vector(), s.radius)
+            ),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -21,12 +21,27 @@ pub struct Object {
     pub material: Material,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Light {
     pub id: usize,
-    pub point: Vector3,
+    pub geometry: LightGeometry,
     pub colour: Colour,
     pub intensity: f64,
+}
+
+impl Light {
+    pub fn random_point(&self) -> Vector3 {
+        match self.geometry {
+            LightGeometry::Point(v) => v,
+            LightGeometry::Area(p) => p.random_point(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum LightGeometry {
+    Point(Vector3),
+    Area(Primitive),
 }
 
 pub type Model = Vec<Primitive>;

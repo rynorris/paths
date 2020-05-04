@@ -6,13 +6,13 @@ camera:
   sensor_width: 0.036
   sensor_height: 0.024
   focal_length: 0.05
-  focus_distance: 5.0
+  focus_distance: 15.0
   aperture: 8.0
 
 skybox:
   type: Gradient
-  overhead_colour: { r: 0.5, g: 0.8, b: 0.9 }
-  horizon_colour: { r: 0.7, g: 0.85, b: 0.9 }
+  overhead_colour: { r: 0.1, g: 0.1, b: 0.1 }
+  horizon_colour: { r: 0.0, g: 0.0, b: 0.0 }
 
 models:
   bunny:
@@ -20,33 +20,24 @@ models:
   teapot:
     file: "./scenes/objects/teapot.obj"
 
+lights:
+  - colour: { r: 0.8, g: 0.8, b: 1.0 }
+    intensity: 250.0
+    geometry:
+      type: Sphere
+      center: { x: 5.0, y: 10.0, z: -5.0 }
+      radius: 1.0
+
 objects:
   - shape:
       type: Mesh
       model: bunny
-      translation: { x: 0.0, y: 0.0, z: 0.0 }
-      rotation: { pitch: 2.0, yaw: 0.0, roll: 0.0 }
-      scale: 15.0
+      translation: { x: 0.0, y: -1.0, z: 0.0 }
+      rotation: { pitch: 1.9, yaw: 0.0, roll: 0.0 }
+      scale: 20.0
     material:
       type: Fresnel
-      refractive_index: 0.1
-      diffuse:
-        type: Lambertian
-        albedo: { r: 0.9, g: 0.8, b: 0.6 }
-      specular: 
-        type: CookTorrance
-        albedo: { r: 0.9, g: 0.8, b: 0.6 }
-        roughness: 0.1
-
-  - shape:
-      type: Mesh
-      model: teapot
-      translation: { x: -3.0, y: 0.0, z: 0.0 }
-      rotation: { pitch: 0.4, yaw: 0.0, roll: 0.0 }
-      scale: 1.0
-    material:
-      type: Fresnel
-      refractive_index: 1.5
+      refractive_index: 5.5
       diffuse:
         type: Lambertian
         albedo: { r: 0.8, g: 0.3, b: 0.3 }
@@ -58,23 +49,29 @@ objects:
   - shape:
       type: Sphere
       radius: 1.0
-      center: { x: 3.0, y: 1.0, z: 0.0 }
+      center: { x: 3.0, y: 1.0, z: 3.0 }
     material:
       type: Fresnel
-      refractive_index: 2.5
+      refractive_index: 5.5
       diffuse:
         type: Lambertian
-        albedo: { r: 0.5, g: 0.5, b: 0.8 }
+        albedo: { r: 0.8, g: 0.8, b: 1.0 }
       specular: 
         type: CookTorrance
         albedo: { r: 1.0, g: 1.0, b: 1.0 }
-        roughness: 0.01
+        roughness: 0.001
 
   - shape:
       type: Sphere
       radius: 1000000.0
       center: { x: 0.0, y: -1000000.0, z: 0.0 }
     material:
-      type: Gloss
-      albedo: { r: 0.8, g: 0.8, b: 0.8 }
-      reflectance: 2.5
+      type: Fresnel
+      refractive_index: 3.5
+      diffuse:
+        type: Lambertian
+        albedo: { r: 0.2, g: 0.2, b: 0.2 }
+      specular: 
+        type: CookTorrance
+        albedo: { r: 1.0, g: 1.0, b: 1.0 }
+        roughness: 0.001

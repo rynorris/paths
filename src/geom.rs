@@ -108,6 +108,20 @@ impl Primitive {
             Primitive::Triangle(triangle) => Primitive::Triangle(triangle.transform(translation, rotation, scale)),
         }
     }
+
+    pub fn random_point(&self) -> Vector3 {
+        match self {
+            Primitive::Sphere(sphere) => {
+                let mut rng = rand::thread_rng();
+                let yaw = (rng.gen::<f64>() - 0.5) * PI;
+                let pitch = (rng.gen::<f64>() - 0.5) * PI;
+                let roll = (rng.gen::<f64>() - 0.5) * PI;
+                let rot = Matrix3::rotation(yaw, pitch, roll);
+                sphere.center + rot * Vector3::new(sphere.radius, 0.0, 0.0)
+            },
+            Primitive::Triangle(_) => panic!("random_point() not supported on Triangle Primitive."),
+        }
+    }
 }
 
 impl BoundedVolume for Primitive {

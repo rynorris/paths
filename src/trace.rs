@@ -40,8 +40,9 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
         // Next Event Estimation.
         let direct_illumination = match scene.random_light() {
             Some(light) => {
-                let distance_to_light_squared = (light.point - collision.location).magnitude();
-                let direction = (light.point - collision.location).normed();
+                let point = light.random_point();
+                let distance_to_light_squared = (point - collision.location).magnitude();
+                let direction = (point - collision.location).normed();
                 let shadow_ray = Ray::new(
                     collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
                     direction
