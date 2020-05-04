@@ -12,6 +12,10 @@ impl Vector3 {
         Vector3 { x, y, z }
     }
 
+    pub fn is_nan(&self) -> bool {
+        self.x.is_nan() || self.y.is_nan() || self.z.is_nan()
+    }
+
     pub fn dot(&self, other: Vector3) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }

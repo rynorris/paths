@@ -31,6 +31,10 @@ impl Model {
             .enumerate()
             .for_each(|(ix, &(a, b, c))| {
                 let n = face_normals[ix];
+                if n.is_nan() {
+                    return;
+                }
+
                 vertex_normal_sums[a] += n;
                 vertex_normal_sums[b] += n;
                 vertex_normal_sums[c] += n;
@@ -46,7 +50,7 @@ impl Model {
 
         self.faces.iter()
             .enumerate()
-            .map(|(ix, &(a, b, c))| {
+            .filter_map(|(ix, &(a, b, c))| {
                 let v1 = self.vertices[a];
                 let v2 = self.vertices[b];
                 let v3 = self.vertices[c];
@@ -59,7 +63,11 @@ impl Model {
                 let surface_normal = face_normals[ix];
                 let vertex_normals = [vn1, vn2, vn3];
 
-                Primitive::triangle(vertices, surface_normal, vertex_normals)
+                if surface_normal.is_nan() {
+                    None
+                } else {
+                    Some(Primitive::triangle(vertices, surface_normal, vertex_normals))
+                }
             })
             .collect()
     }
@@ -67,7 +75,15 @@ impl Model {
     fn face_normal(v1: Vector3, v2: Vector3, v3: Vector3) -> Vector3 {
         let side_1 = v2 - v1;
         let side_2 = v3 - v1;
-        return side_1.cross(side_2).normed();
+        let side_3 = v3 - v2;
+        let mut n = side_1.cross(side_2).normed();
+
+        if n.x.is_nan() || n.y.is_nan() || n.z.is_nan() {
+            // Try again with a different pair of sides.
+            n = side_1.cross(side_3).normed();
+        }
+
+        n
     }
 }
 
