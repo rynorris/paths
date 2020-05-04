@@ -58,8 +58,8 @@ impl SceneDescription {
     }
 
     pub fn scene(&self) -> scene::Scene {
+        let mut model_library: scene::ModelLibrary = HashMap::with_capacity(self.models.len());
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
-        let mut models: HashMap<String, Vec<geom::Primitive>> = HashMap::with_capacity(self.models.len());
 
         self.models.iter().for_each(|(name, desc)| {
             println!("Loading model '{}' from '{}'", name, desc.file);
@@ -67,31 +67,33 @@ impl SceneDescription {
             let triangles: Vec<geom::Primitive> = model.resolve_triangles().iter()
                 .map(|v| *v)
                 .collect();
-            models.insert(name.clone(), triangles);
+            model_library.insert(name.clone(), triangles);
         });
 
-        self.objects.iter().for_each(|o| {
+        self.objects.iter().enumerate().for_each(|(ix, o)| {
             let material: Material = (&o.material).into();
-            let shapes: Vec<geom::Primitive> = match o.shape {
-                ShapeDescription::Sphere(ref shp) => vec![
+            let geometry: geom::Geometry = match o.shape {
+                ShapeDescription::Sphere(ref shp) => geom::Geometry::Primitive(
                     geom::Primitive::sphere(shp.center.to_vector(), shp.radius)
-                ],
+                ),
                 ShapeDescription::Mesh(ref shp) => {
                     println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
-                    let triangles: Vec<geom::Primitive> = models.get(&shp.model).unwrap().iter()
-                        .map(|t| t.transform(translation, rotation.clone(), shp.scale))
-                        .collect();
-                    triangles
+                    geom::Geometry::Mesh(
+                        geom::Mesh::new(shp.model.clone(), translation, rotation, shp.scale)
+                    )
                 },
             };
 
-            shapes.iter().for_each(|shape| {
-                objects.push(scene::Object{ material: material.clone(), shape: shape.clone() });
+            objects.push(scene::Object{
+                id: ix,
+                geometry,
+                material,
             });
         });
-        scene::Scene::new(objects, self.skybox.to_skybox())
+
+        scene::Scene::new(model_library, objects, self.skybox.to_skybox())
     }
 }
 

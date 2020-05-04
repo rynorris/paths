@@ -1,25 +1,27 @@
+use std::collections::HashMap;
+
 use crate::bvh::{construct_bvh_aac, BVH};
 use crate::colour::Colour;
-use crate::geom::{AABB, BoundedVolume, Collision, Primitive, Ray};
+use crate::geom::{Collision, Geometry, Primitive, Ray};
 use crate::material::Material;
 use crate::vector::Vector3;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EntityID {
+    Object(usize),
+    Light(usize),
+}
+
 #[derive(Clone)]
 pub struct Object {
-    pub shape: Primitive,
+    pub id: usize,
+    pub geometry: Geometry,
     pub material: Material,
 }
 
-impl BoundedVolume for Object {
-    fn aabb(&self) -> AABB {
-        self.shape.aabb()
-    }
+pub type Model = Vec<Primitive>;
 
-    fn intersect(&self, ray: Ray) -> Option<Collision> {
-        self.shape.intersect(ray)
-    }
-}
-
+pub type ModelLibrary = HashMap<String, Model>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Skybox {
@@ -60,16 +62,33 @@ pub struct GradientSky {
 
 pub struct Scene {
     pub skybox: Skybox,
-    bvh: BVH<Object>,
+    objects: Vec<Object>,
+    bvh: BVH<EntityID>,
 }
 
 impl Scene {
-    pub fn new(objects: Vec<Object>, skybox: Skybox) -> Scene {
-        let bvh = construct_bvh_aac(objects);
-        Scene { skybox, bvh }
+    pub fn new(model_library: ModelLibrary, objects: Vec<Object>, skybox: Skybox) -> Scene {
+        let primitive_geometry = objects.iter()
+            .map(|o| {
+                let id = o.id;
+                let mut primitives = match o.geometry {
+                    Geometry::Primitive(p) => vec![p],
+                    Geometry::Mesh(ref m) => m.primitives(&model_library),
+                };
+                primitives.drain(..).map(move|p| (p, EntityID::Object(id))).collect()
+            })
+            .flat_map(|items: Vec<(Primitive, EntityID)>| { items.into_iter() })
+            .collect();
+        let bvh = construct_bvh_aac(primitive_geometry);
+        Scene { skybox, objects, bvh }
     }
 
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Material)> {
-        self.bvh.find_intersection(ray).map(|(col, obj)| (col, obj.material))
+        self.bvh.find_intersection(ray).map(|(col, entity)| {
+            match entity {
+                EntityID::Object(id) => Some((col, self.objects[*id].material)),
+                _ => None,
+            }
+        }).flatten()
     }
 }

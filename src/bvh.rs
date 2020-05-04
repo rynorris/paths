@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use crate::geom::{AABB, BoundedVolume, Collision, Ray};
+use crate::geom::{AABB, BoundedVolume, Collision, Primitive, Ray};
 use crate::vector::Vector3;
 
 
@@ -36,12 +36,13 @@ impl Node {
 
 struct LeafNode {
     obj: usize,
+    primitive: Primitive,
     aabb: AABB,
 }
 
 impl LeafNode {
-    fn new(obj: usize, aabb: AABB) -> LeafNode {
-        LeafNode { obj, aabb }
+    fn new(obj: usize, primitive: Primitive) -> LeafNode {
+        LeafNode { obj, primitive, aabb: primitive.aabb() }
     }
 }
 
@@ -73,7 +74,7 @@ pub struct BVH<T> {
     root: Node,
 }
 
-impl <T : BoundedVolume> BVH<T> {
+impl <T> BVH<T> {
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, &T)> {
         let mut stack: [Option<&Node>; 100] = [None; 100];
         let mut stack_ptr: usize = 0;
@@ -89,7 +90,7 @@ impl <T : BoundedVolume> BVH<T> {
         loop {
             match node {
                 Node::Leaf(ref leaf) => {
-                    if let Some(col) = self.items[leaf.obj].intersect(ray) {
+                    if let Some(col) = leaf.primitive.intersect(ray) {
                         closest_collision = match closest_collision {
                             Some((best, o)) =>  {
                                 if col.distance < best.distance {
@@ -156,11 +157,16 @@ fn ccrf(x: usize) -> usize {
     (c * xf.powf(0.5 - EPSILON)).ceil() as usize
 }
 
-pub fn construct_bvh_aac<T : BoundedVolume>(objects: Vec<T>) -> BVH<T> {
+pub fn construct_bvh_aac<T>(mut items_with_geometry: Vec<(Primitive, T)>) -> BVH<T> {
     let start_time = Instant::now();
-    println!("[{:.2?}] Constructing BVH from {:?} objects", start_time.elapsed(), objects.len());
+    println!("[{:.2?}] Constructing BVH from {:?} objects", start_time.elapsed(), items_with_geometry.len());
 
-    let mut nodes: Vec<Node> = objects.iter().enumerate().map(|(ix, o)| Node::Leaf(LeafNode::new(ix, o.aabb()))).collect();
+    let mut nodes: Vec<Node> = items_with_geometry.iter()
+        .enumerate()
+        .map(|(ix, (p, _))| Node::Leaf(LeafNode::new(ix, *p)))
+        .collect();
+    let items: Vec<T> = items_with_geometry.drain(..).map(|(_, item)| item).collect();
+
     let num_bits = (nodes.len() as f64).log(4.0).ceil() as u16;
     if num_bits > 16 { panic!("Too many objects to construct BVH"); }
 
@@ -196,7 +202,7 @@ pub fn construct_bvh_aac<T : BoundedVolume>(objects: Vec<T>) -> BVH<T> {
 
     println!("[{:.2?}] Finished constructing BVH", start_time.elapsed());
 
-    BVH { items: objects, root }
+    BVH { items, root }
 }
 
 fn build_tree(mut clusters: Vec<(Node, u64)>, max_depth: u16, depth: u16) -> Vec<Node> {

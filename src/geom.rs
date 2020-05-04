@@ -3,6 +3,7 @@ use std::f64::consts::PI;
 use rand;
 use rand::Rng;
 
+use crate::scene::ModelLibrary;
 use crate::matrix::Matrix3;
 use crate::vector::Vector3;
 
@@ -57,6 +58,33 @@ impl AABB {
 pub trait BoundedVolume {
     fn aabb(&self) -> AABB;
     fn intersect(&self, ray: Ray) -> Option<Collision>;
+}
+
+
+#[derive(Clone, Debug)]
+pub enum Geometry {
+    Primitive(Primitive),
+    Mesh(Mesh),
+}
+
+#[derive(Clone, Debug)]
+pub struct Mesh {
+    model: String,
+    translation: Vector3,
+    rotation: Matrix3,
+    scale: f64,
+}
+
+impl Mesh {
+    pub fn new(model: String, translation: Vector3, rotation: Matrix3, scale: f64) -> Mesh {
+        Mesh{ model, translation, rotation, scale }
+    }
+
+    pub fn primitives(&self, model_library: &ModelLibrary) -> Vec<Primitive> {
+        model_library.get(&self.model).unwrap().iter()
+            .map(|t| t.transform(self.translation, self.rotation, self.scale))
+            .collect()
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
