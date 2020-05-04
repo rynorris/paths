@@ -46,6 +46,7 @@ pub struct RotationDescription {
 pub struct SceneDescription {
     pub camera: CameraDescription,
     pub objects: Vec<ObjectDescription>,
+    pub lights: Vec<LightDescription>,
     pub skybox: SkyboxDescription,
 
     #[serde(default)]
@@ -58,40 +59,52 @@ impl SceneDescription {
     }
 
     pub fn scene(&self) -> scene::Scene {
+        let mut model_library: scene::ModelLibrary = HashMap::with_capacity(self.models.len());
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
-        let mut models: HashMap<String, Vec<geom::Shape>> = HashMap::with_capacity(self.models.len());
+        let mut lights: Vec<scene::Light> = Vec::with_capacity(self.lights.len());
 
         self.models.iter().for_each(|(name, desc)| {
             println!("Loading model '{}' from '{}'", name, desc.file);
             let model = obj::load_obj_file(&desc.file);
-            let triangles: Vec<geom::Shape> = model.resolve_triangles().iter()
+            let triangles: Vec<geom::Primitive> = model.resolve_triangles().iter()
                 .map(|v| *v)
                 .collect();
-            models.insert(name.clone(), triangles);
+            model_library.insert(name.clone(), triangles);
         });
 
-        self.objects.iter().for_each(|o| {
+        self.objects.iter().enumerate().for_each(|(ix, o)| {
             let material: Material = (&o.material).into();
-            let shapes: Vec<geom::Shape> = match o.shape {
-                ShapeDescription::Sphere(ref shp) => vec![
-                    geom::Shape::sphere(shp.center.to_vector(), shp.radius)
-                ],
+            let geometry: geom::Geometry = match o.shape {
+                ShapeDescription::Sphere(ref shp) => geom::Geometry::Primitive(
+                    geom::Primitive::sphere(shp.center.to_vector(), shp.radius)
+                ),
                 ShapeDescription::Mesh(ref shp) => {
                     println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
-                    let triangles: Vec<geom::Shape> = models.get(&shp.model).unwrap().iter()
-                        .map(|t| t.transform(translation, rotation.clone(), shp.scale))
-                        .collect();
-                    triangles
+                    geom::Geometry::Mesh(
+                        geom::Mesh::new(shp.model.clone(), translation, rotation, shp.scale)
+                    )
                 },
             };
 
-            shapes.iter().for_each(|shape| {
-                objects.push(scene::Object{ material: material.clone(), shape: shape.clone() });
+            objects.push(scene::Object{
+                id: ix,
+                geometry,
+                material,
             });
         });
-        scene::Scene::new(objects, self.skybox.to_skybox())
+
+        self.lights.iter().enumerate().for_each(|(ix, l)| {
+            lights.push(scene::Light{
+                id: ix,
+                geometry: l.geometry.to_light_geometry(),
+                colour: l.colour.to_colour(),
+                intensity: l.intensity,
+            });
+        });
+
+        scene::Scene::new(model_library, objects, lights, self.skybox.to_skybox())
     }
 }
 
@@ -137,6 +150,31 @@ pub struct ModelDescription {
 pub struct ObjectDescription {
     pub shape: ShapeDescription,
     pub material: MaterialDescription,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LightDescription {
+    pub geometry: LightGeometryDescription,
+    pub colour: ColourDescription,
+    pub intensity: f64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum LightGeometryDescription {
+    Point(VectorDescription),
+    Sphere(SphereDescription),
+}
+
+impl LightGeometryDescription {
+    pub fn to_light_geometry(&self) -> scene::LightGeometry {
+        match self {
+            LightGeometryDescription::Point(v) => scene::LightGeometry::Point(v.to_vector()),
+            LightGeometryDescription::Sphere(s) => scene::LightGeometry::Area(
+                geom::Primitive::sphere(s.center.to_vector(), s.radius)
+            ),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

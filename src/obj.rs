@@ -5,7 +5,7 @@ use std::str::FromStr;
 use nom::{digit, double};
 use nom::types::CompleteStr;
 
-use crate::geom::Shape;
+use crate::geom::Primitive;
 use crate::vector::Vector3;
 
 pub struct Model {
@@ -14,7 +14,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn resolve_triangles(&self) -> Vec<Shape> {
+    pub fn resolve_triangles(&self) -> Vec<Primitive> {
         // Firstly, compute the face normals.
         let face_normals: Vec<Vector3> = self.faces.iter()
             .map(|&(a, b, c)| {
@@ -60,7 +60,7 @@ impl Model {
                 let surface_normal = face_normals[ix];
                 let vertex_normals = [vn1, vn2, vn3];
 
-                Shape::triangle(vertices, surface_normal, vertex_normals)
+                Primitive::triangle(vertices, surface_normal, vertex_normals)
             })
             .collect()
     }

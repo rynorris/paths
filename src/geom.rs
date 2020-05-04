@@ -3,6 +3,7 @@ use std::f64::consts::PI;
 use rand;
 use rand::Rng;
 
+use crate::scene::ModelLibrary;
 use crate::matrix::Matrix3;
 use crate::vector::Vector3;
 
@@ -59,61 +60,102 @@ pub trait BoundedVolume {
     fn intersect(&self, ray: Ray) -> Option<Collision>;
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum Shape {
-    Sphere(SphereShape),
-    Triangle(TriangleShape),
+
+#[derive(Clone, Debug)]
+pub enum Geometry {
+    Primitive(Primitive),
+    Mesh(Mesh),
 }
 
-impl Shape {
-    pub fn sphere(center: Vector3, radius: f64) -> Shape {
-        Shape::Sphere(SphereShape{ center, radius })
+#[derive(Clone, Debug)]
+pub struct Mesh {
+    model: String,
+    translation: Vector3,
+    rotation: Matrix3,
+    scale: f64,
+}
+
+impl Mesh {
+    pub fn new(model: String, translation: Vector3, rotation: Matrix3, scale: f64) -> Mesh {
+        Mesh{ model, translation, rotation, scale }
     }
 
-    pub fn triangle(vertices: [Vector3; 3], surface_normal: Vector3, vertex_normals: [Vector3; 3]) -> Shape {
-        Shape::Triangle(TriangleShape{ vertices, surface_normal, vertex_normals })
+    pub fn primitives(&self, model_library: &ModelLibrary) -> Vec<Primitive> {
+        model_library.get(&self.model).unwrap().iter()
+            .map(|t| t.transform(self.translation, self.rotation, self.scale))
+            .collect()
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Primitive {
+    Sphere(SpherePrimitive),
+    Triangle(TrianglePrimitive),
+}
+
+impl Primitive {
+    pub fn sphere(center: Vector3, radius: f64) -> Primitive {
+        Primitive::Sphere(SpherePrimitive{ center, radius })
     }
 
-    pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> Shape {
+    pub fn triangle(vertices: [Vector3; 3], surface_normal: Vector3, vertex_normals: [Vector3; 3]) -> Primitive {
+        Primitive::Triangle(TrianglePrimitive{ vertices, surface_normal, vertex_normals })
+    }
+
+    pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> Primitive {
         match self {
-            Shape::Sphere(sphere) => Shape::Sphere(sphere.transform(translation, rotation, scale)),
-            Shape::Triangle(triangle) => Shape::Triangle(triangle.transform(translation, rotation, scale)),
+            Primitive::Sphere(sphere) => Primitive::Sphere(sphere.transform(translation, rotation, scale)),
+            Primitive::Triangle(triangle) => Primitive::Triangle(triangle.transform(translation, rotation, scale)),
+        }
+    }
+
+    pub fn random_point(&self) -> Vector3 {
+        match self {
+            Primitive::Sphere(sphere) => {
+                let mut rng = rand::thread_rng();
+                let yaw = (rng.gen::<f64>() - 0.5) * PI;
+                let pitch = (rng.gen::<f64>() - 0.5) * PI;
+                let roll = (rng.gen::<f64>() - 0.5) * PI;
+                let rot = Matrix3::rotation(yaw, pitch, roll);
+                sphere.center + rot * Vector3::new(sphere.radius, 0.0, 0.0)
+            },
+            Primitive::Triangle(_) => panic!("random_point() not supported on Triangle Primitive."),
         }
     }
 }
 
-impl BoundedVolume for Shape {
+impl BoundedVolume for Primitive {
     fn aabb(&self) -> AABB {
         match self {
-            Shape::Sphere(sphere) => sphere.aabb(),
-            Shape::Triangle(triangle) => triangle.aabb(),
+            Primitive::Sphere(sphere) => sphere.aabb(),
+            Primitive::Triangle(triangle) => triangle.aabb(),
         }
     }
 
     fn intersect(&self, ray: Ray) -> Option<Collision> {
         match self {
-            Shape::Sphere(sphere) => sphere.intersect(ray),
-            Shape::Triangle(triangle) => triangle.intersect(ray),
+            Primitive::Sphere(sphere) => sphere.intersect(ray),
+            Primitive::Triangle(triangle) => triangle.intersect(ray),
         }
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct SphereShape {
+pub struct SpherePrimitive {
     pub center: Vector3,
     pub radius: f64,
 }
 
-impl SphereShape {
-    pub fn transform(&self, translation: Vector3, _: Matrix3, scale: f64) -> SphereShape {
-        SphereShape {
+impl SpherePrimitive {
+    pub fn transform(&self, translation: Vector3, _: Matrix3, scale: f64) -> SpherePrimitive {
+        SpherePrimitive {
             center: self.center + translation,
             radius: self.radius * scale,
         }
     }
 }
 
-impl BoundedVolume for SphereShape {
+impl BoundedVolume for SpherePrimitive {
     fn intersect(&self, ray: Ray) -> Option<Collision> {
         let c = self.center;
         let r = self.radius;
@@ -149,15 +191,15 @@ impl BoundedVolume for SphereShape {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct TriangleShape {
+pub struct TrianglePrimitive {
     pub vertices: [Vector3; 3],
     pub surface_normal: Vector3,
     pub vertex_normals: [Vector3; 3],
 }
 
-impl TriangleShape {
-    pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> TriangleShape {
-        TriangleShape {
+impl TrianglePrimitive {
+    pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> TrianglePrimitive {
+        TrianglePrimitive {
             vertices: [
                 rotation * self.vertices[0] * scale + translation,
                 rotation * self.vertices[1] * scale + translation,
@@ -173,7 +215,7 @@ impl TriangleShape {
     }
 }
 
-impl BoundedVolume for TriangleShape {
+impl BoundedVolume for TrianglePrimitive {
     fn intersect(&self, ray: Ray) -> Option<Collision> {
         let a = self.vertices[0];
         let b = self.vertices[1];

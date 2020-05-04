@@ -18,6 +18,8 @@ models:
   teapot:
     file: "./scenes/objects/teapot.obj"
 
+lights: []
+
 objects:
   - shape:
       type: Mesh
