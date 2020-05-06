@@ -63,6 +63,13 @@ impl Material {
         Material::FresnelCombination(FresnelCombinationMaterial::new(diffuse, specular, refractive_index))
     }
 
+    pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
+        match self {
+            Material::Gloss(mat) => mat.sample(vec_out, normal),
+            _ => panic!("Not implemented"),
+        }
+    }
+
     pub fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
         match self {
             Material::Lambertian(mat) => mat.weight_pdf(vec_out, vec_in, normal),
@@ -149,8 +156,8 @@ pub struct LambertianMaterial {
 }
 
 impl MaterialInterface for LambertianMaterial {
-    fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> f64 {
-        1.0
+    fn weight_pdf(&self, vec_out: Vector3, _vec_in: Vector3, normal: Vector3) -> f64 {
+        vec_out.dot(normal) / PI
     }
 
     fn sample_pdf(&self, _vec_out: Vector3, normal: Vector3) -> Vector3 {
@@ -180,7 +187,7 @@ impl MaterialInterface for LambertianMaterial {
     }
 
     fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
-        self.albedo
+        self.albedo / PI
     }
 }
 
@@ -207,7 +214,8 @@ impl MaterialInterface for MirrorMaterial {
     }
 
     fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
-        Colour::rgb(1.0, 1.0, 1.0)
+        // 0 chance of any particular ray.
+        Colour::BLACK
     }
 }
 
@@ -220,22 +228,51 @@ pub struct GlossMaterial {
 
 impl GlossMaterial {
     pub fn new(albedo: Colour, reflectance: f64) -> GlossMaterial {
-        let n1: f64 = 1.0;  // Air
-        let n2: f64 = reflectance;
-
-        // Schlick's approximation for the fresnel factor.
-        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
         GlossMaterial {
             lambertian: LambertianMaterial{ albedo, emittance: Colour::BLACK },
             mirror: MirrorMaterial{},
-            fresnel_r0: r0,
+            fresnel_r0: reflectance,
+        }
+    }
+
+    // Returns (direction, pdf, brdf, is_specular)
+    pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
+        let cos_theta = vec_out.dot(normal);
+        let r0 = self.fresnel_r0;
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
+        let is_specular = rand::thread_rng().gen::<f64>() <= r;
+
+        if is_specular {
+            let direction = self.mirror.sample_pdf(vec_out, normal);
+            let vec_in = direction * -1.0;
+            let pdf = self.mirror.weight_pdf(vec_in, vec_out, normal);
+            let brdf = Colour::WHITE;
+            (direction, pdf * r, brdf * r, is_specular)
+        } else {
+            let direction = self.lambertian.sample_pdf(vec_out, normal);
+            let vec_in = direction * -1.0;
+            let pdf = self.lambertian.weight_pdf(vec_in, vec_out, normal);
+            let brdf = self.lambertian.brdf(vec_in, vec_out, normal);
+            (direction, pdf * (1.0 - r), brdf * (1.0 - r), is_specular)
         }
     }
 }
 
 impl MaterialInterface for GlossMaterial {
-    fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> f64 {
-        1.0
+    fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
+        let cos_theta = vec_out.dot(normal);
+
+        let r0 = self.fresnel_r0;
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
+        // Probability of this ray given diffuse scattering.
+        let diffuse = self.lambertian.weight_pdf(vec_out, vec_in, normal);
+
+        // Probability of this ray given specular reflection.
+        let specular = self.mirror.weight_pdf(vec_out, vec_in, normal);
+
+        diffuse * (1.0 - r) * specular * r
     }
 
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
@@ -254,13 +291,16 @@ impl MaterialInterface for GlossMaterial {
         Colour::BLACK
     }
 
-    fn brdf(&self, vec_out: Vector3, _vec_in: Vector3, normal: Vector3) -> Colour {
+    fn brdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
         let cos_theta = vec_out.dot(normal);
 
         let r0 = self.fresnel_r0;
         let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
 
-        self.lambertian.albedo * (1.0 - r) + Colour::rgb(1.0, 1.0, 1.0) * r
+        let diffuse = self.lambertian.brdf(vec_out, vec_in, normal);
+        let specular = self.mirror.brdf(vec_out, vec_in, normal);
+
+        diffuse * (1.0 - r) + specular * r
     }
 }
 
