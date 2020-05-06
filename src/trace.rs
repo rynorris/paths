@@ -25,18 +25,6 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
 
         let emittance = material.emittance(ray.direction * -1, cos_out);
 
-        let new_ray = Ray::new(
-            collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
-            material.sample_pdf(ray.direction * -1, collision.normal),
-        );
-
-        let pdf = material.weight_pdf(ray.direction * -1, new_ray.direction * -1, collision.normal);
-
-        let attenuation = material.brdf(ray.direction * -1, new_ray.direction * -1, collision.normal) / pdf;
-        throughput = throughput * attenuation;
-
-        colour += emittance * throughput;
-
         // Next Event Estimation.
         let direct_illumination = match scene.random_light() {
             Some(light) => {
@@ -68,6 +56,19 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
         };
 
         colour += direct_illumination * throughput;
+
+        // Next bounce.
+        let new_ray = Ray::new(
+            collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
+            material.sample_pdf(ray.direction * -1, collision.normal),
+        );
+
+        let pdf = material.weight_pdf(ray.direction * -1, new_ray.direction * -1, collision.normal);
+
+        let attenuation = material.brdf(ray.direction * -1, new_ray.direction * -1, collision.normal) / pdf;
+        throughput = throughput * attenuation;
+
+        colour += emittance * throughput;
 
         // Chance for the material to eat the ray.
         let survival_chance = throughput.max();

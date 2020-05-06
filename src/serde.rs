@@ -7,6 +7,7 @@ use crate::vector::Vector3;
 use crate::geom;
 use crate::material::{BasicMaterial, Material};
 use crate::obj;
+use crate::ply;
 use crate::scene;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -65,11 +66,28 @@ impl SceneDescription {
 
         self.models.iter().for_each(|(name, desc)| {
             println!("Loading model '{}' from '{}'", name, desc.file);
-            let model = obj::load_obj_file(&desc.file);
-            let triangles: Vec<geom::Primitive> = model.resolve_triangles().iter()
-                .map(|v| *v)
-                .collect();
-            model_library.insert(name.clone(), triangles);
+            let path = std::path::Path::new(&desc.file);
+            let extension = path.extension().map(|osstr| osstr.to_str()).flatten();
+            let model = match extension {
+                Some("obj") => {
+                    obj::load_obj_file(&desc.file)
+                        .resolve_triangles()
+                        .iter()
+                        .map(|v| *v)
+                        .collect()
+                },
+                Some("ply") => {
+                    ply::load_ply_file(&desc.file)
+                        .resolve_triangles()
+                        .iter()
+                        .map(|v| *v)
+                        .collect()
+                },
+                Some(ext) => panic!("Unknown file extension: {}", ext),
+                None => panic!("Could not identify filetype for path because it has no extension: {:?}", path),
+            };
+
+            model_library.insert(name.clone(), model);
         });
 
         self.objects.iter().enumerate().for_each(|(ix, o)| {
