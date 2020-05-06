@@ -47,6 +47,7 @@ fn random_material() -> serde::MaterialDescription {
         0 => serde::MaterialDescription::Gloss(serde::GlossMaterialDescription{
             albedo: random_colour(),
             reflectance: 1.0 + rng.gen::<f64>() * 2.0,
+            metalness: 0.0,
         }),
         1 => serde::MaterialDescription::Lambertian(serde::LambertianMaterialDescription{
             albedo: random_colour(),

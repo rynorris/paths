@@ -51,8 +51,8 @@ impl Material {
         Material::Mirror(MirrorMaterial{})
     }
 
-    pub fn gloss(albedo: Colour, reflectance: f64) -> Material {
-        Material::Gloss(GlossMaterial::new(albedo, reflectance))
+    pub fn gloss(albedo: Colour, reflectance: f64, metalness: f64) -> Material {
+        Material::Gloss(GlossMaterial::new(albedo, reflectance, metalness))
     }
 
     pub fn cook_torrance(albedo: Colour, roughness: f64) -> Material {
@@ -224,14 +224,16 @@ pub struct GlossMaterial {
     lambertian: LambertianMaterial,
     mirror: MirrorMaterial,
     fresnel_r0: f64,
+    metalness: f64,
 }
 
 impl GlossMaterial {
-    pub fn new(albedo: Colour, reflectance: f64) -> GlossMaterial {
+    pub fn new(albedo: Colour, reflectance: f64, metalness: f64) -> GlossMaterial {
         GlossMaterial {
             lambertian: LambertianMaterial{ albedo, emittance: Colour::BLACK },
             mirror: MirrorMaterial{},
             fresnel_r0: reflectance,
+            metalness,
         }
     }
 
@@ -247,13 +249,13 @@ impl GlossMaterial {
             let direction = self.mirror.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
             let pdf = self.mirror.weight_pdf(vec_in, vec_out, normal);
-            let brdf = Colour::WHITE;
+            let brdf = self.lambertian.albedo * self.metalness + Colour::WHITE * (1.0 - self.metalness);
             (direction, pdf * r, brdf * r, is_specular)
         } else {
             let direction = self.lambertian.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
             let pdf = self.lambertian.weight_pdf(vec_in, vec_out, normal);
-            let brdf = self.lambertian.brdf(vec_in, vec_out, normal);
+            let brdf = self.lambertian.brdf(vec_in, vec_out, normal) * (1.0 - self.metalness);
             (direction, pdf * (1.0 - r), brdf * (1.0 - r), is_specular)
         }
     }
@@ -297,7 +299,7 @@ impl MaterialInterface for GlossMaterial {
         let r0 = self.fresnel_r0;
         let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
 
-        let diffuse = self.lambertian.brdf(vec_out, vec_in, normal);
+        let diffuse = self.lambertian.brdf(vec_out, vec_in, normal) * (1.0 - self.metalness);
         let specular = self.mirror.brdf(vec_out, vec_in, normal);
 
         diffuse * (1.0 - r) + specular * r
