@@ -20,11 +20,11 @@ models:
 
 lights:
   - colour: { r: 1.0, g: 1.0, b: 0.95 }
-    intensity: 2000.0
+    intensity: 200.0
     geometry:
       type: Sphere
       center: { x: 0.0, y: 20.0, z: 0.0 }
-      radius: 3.0
+      radius: 1.0
 
 objects:
   - shape:
@@ -36,7 +36,7 @@ objects:
     material:
       type: Gloss
       albedo: { r: 1.00, g: 0.85, b: 0.57 }
-      reflectance: 0.8
+      reflectance: 1.0
       metalness: 1.0
 
   - shape:

@@ -39,17 +39,15 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                 // Next Event Estimation.
                 let direct_illumination = match scene.random_light() {
                     Some(light) => {
-                        let point = light.random_point();
-                        let distance_to_light_squared = (point - collision.location).magnitude();
-                        let direction = (point - collision.location).normed();
+                        let (in_dir, inv_pdf) = light.sample(collision.location);
                         let shadow_ray = Ray::new(
                             collision.location + collision.normal * 0.0001,  // Add the normal as a hack so it doesn't collide with the same object again.
-                            direction
+                            in_dir * -1,
                         );
 
                         let occluded = match scene.find_intersection(shadow_ray) {
-                            Some((col, e)) => {
-                                e.id() != light.entity_id() && (col.distance * col.distance) < distance_to_light_squared
+                            Some((_, e)) => {
+                                e.id() != light.entity_id()
                             },
                             None => false,
                         };
@@ -59,8 +57,7 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                         } else {
                             let base = light.colour * light.intensity;
                             let brdf = o.material.brdf(ray.direction * -1, shadow_ray.direction * -1, collision.normal);
-                            let solid_angle = 1.0 / distance_to_light_squared;
-                            base * brdf * solid_angle * (collision.normal.dot(shadow_ray.direction))
+                            base * brdf * collision.normal.dot(in_dir * -1) * inv_pdf
                         }
                     },
                     None => Colour::BLACK,
@@ -84,12 +81,14 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                 colour += emittance * throughput;
                 
                 // Chance for the material to eat the ray.
-                let survival_chance = throughput.max();
-                if rand::thread_rng().gen::<f64>() > survival_chance {
-                    break;
-                }
+                if loops >= 2 {
+                    let survival_chance = throughput.max();
+                    if rand::thread_rng().gen::<f64>() > survival_chance {
+                        break;
+                    }
 
-                throughput = throughput / survival_chance;
+                    throughput = throughput / survival_chance;
+                }
 
                 ray = new_ray;
             },

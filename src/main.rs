@@ -84,7 +84,7 @@ fn main() {
 
     let location = camera.location;
     let orientation = camera.rot;
-    let renderer = Renderer::new(camera, Arc::new(scene), 4);
+    let renderer = Renderer::new(camera, Arc::new(scene), 8);
     let mut controller = Controller::new(renderer, location, orientation);
 
     let mut texture_buffer: Vec<u8> = vec![0; (width * height * 3) as usize];

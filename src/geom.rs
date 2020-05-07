@@ -109,15 +109,26 @@ impl Primitive {
         }
     }
 
-    pub fn random_point(&self) -> Vector3 {
+    pub fn sample(&self, from: Vector3) -> (Vector3, f64) {
         match self {
             Primitive::Sphere(sphere) => {
                 let mut rng = rand::thread_rng();
-                let yaw = (rng.gen::<f64>() - 0.5) * PI;
-                let pitch = (rng.gen::<f64>() - 0.5) * PI;
-                let roll = (rng.gen::<f64>() - 0.5) * PI;
-                let rot = Matrix3::rotation(yaw, pitch, roll);
-                sphere.center + rot * Vector3::new(sphere.radius, 0.0, 0.0)
+                let u: f64 = rng.gen();
+                let v: f64 = rng.gen();
+                let z = 1.0 - 2.0 * u;
+                let r = f64::max(0.0, 1.0 - z * z).sqrt();
+                let phi = 2.0 * PI * v;
+                let n = Vector3::new(r * phi.cos(), r * phi.sin(), z);
+
+                let point = sphere.center + n * sphere.radius;
+                let out_vec = from - point;
+                let out_dir = out_vec.normed();
+                let distance_sq = out_vec.magnitude();
+
+                let area = 4.0 * PI * sphere.radius * sphere.radius;
+                let inv_pdf = area * n.dot(out_dir) / distance_sq;
+
+                (out_dir, f64::max(0.0, inv_pdf))
             },
             Primitive::Triangle(_) => panic!("random_point() not supported on Triangle Primitive."),
         }

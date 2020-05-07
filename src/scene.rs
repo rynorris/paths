@@ -49,10 +49,10 @@ impl Light {
         EntityID::Light(self.id)
     }
 
-    pub fn random_point(&self) -> Vector3 {
+    pub fn sample(&self, from: Vector3) -> (Vector3, f64) {
         match self.geometry {
-            LightGeometry::Point(v) => v,
-            LightGeometry::Area(p) => p.random_point(),
+            LightGeometry::Point(v) => (v, 1.0),
+            LightGeometry::Area(p) => p.sample(from),
         }
     }
 }
