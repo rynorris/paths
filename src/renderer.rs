@@ -100,7 +100,7 @@ impl Renderer {
 
             self.num_rays_cast += result.samples.len() as u64;
             result.samples.iter().for_each(|(x, y, colour)| {
-                self.estimator.update_pixel(*x as usize, *y as usize, colour.clamped());
+                self.estimator.update_pixel(*x as usize, *y as usize, *colour);
             });
         });
 
