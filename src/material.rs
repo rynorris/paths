@@ -65,6 +65,7 @@ impl Material {
 
     pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
         match self {
+            Material::Lambertian(mat) => mat.sample(vec_out, normal),
             Material::Gloss(mat) => mat.sample(vec_out, normal),
             _ => panic!("Not implemented"),
         }
@@ -155,6 +156,15 @@ pub struct LambertianMaterial {
     emittance: Colour,
 }
 
+impl LambertianMaterial {
+    pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
+        let direction = self.sample_pdf(vec_out, normal);
+        let pdf = self.weight_pdf(vec_out, direction * -1, normal);
+        let brdf = self.brdf(vec_out, direction * -1, normal);
+        (direction, pdf, brdf, false)
+    }
+}
+
 impl MaterialInterface for LambertianMaterial {
     fn weight_pdf(&self, vec_out: Vector3, _vec_in: Vector3, normal: Vector3) -> f64 {
         vec_out.dot(normal) / PI
@@ -182,8 +192,8 @@ impl MaterialInterface for LambertianMaterial {
         self.emittance
     }
 
-    fn brdf(&self, vec_out: Vector3, _vec_in: Vector3, normal: Vector3) -> Colour {
-        self.albedo * vec_out.dot(normal) / PI
+    fn brdf(&self, _vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
+        self.albedo * normal.dot(vec_in * -1) / PI
     }
 }
 

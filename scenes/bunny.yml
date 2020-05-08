@@ -22,7 +22,7 @@ models:
 
 lights:
   - colour: { r: 0.8, g: 0.8, b: 1.0 }
-    intensity: 100.0
+    intensity: 200.0
     geometry:
       type: Sphere
       center: { x: 5.0, y: 10.0, z: -5.0 }

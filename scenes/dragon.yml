@@ -5,9 +5,9 @@ camera:
   orientation: { pitch: 0.35, yaw: 0.0, roll: 0.0 }
   sensor_width: 0.036
   sensor_height: 0.024
-  focal_length: 0.05
+  focal_length: 0.043
   focus_distance: 15.0
-  aperture: 8.0
+  aperture: 2.0
 
 skybox:
   type: Gradient
@@ -35,7 +35,7 @@ objects:
       scale: 40.0
     material:
       type: Gloss
-      albedo: { r: 1.00, g: 0.85, b: 0.57 }
+      albedo: { r: 0.95, g: 0.80, b: 0.30 }
       reflectance: 1.0
       metalness: 1.0
 
@@ -44,57 +44,45 @@ objects:
       radius: 1000000.0
       center: { x: 0.0, y: -1000000.0, z: 0.0 }
     material:
-      type: Gloss
+      type: Lambertian
       albedo: { r: 0.5, g: 0.5, b: 0.5 }
-      reflectance: 0.04
-      metalness: 0.0
 
   - shape:
       type: Sphere
       radius: 1000000.0
       center: { x: 0.0, y: 1000020.0, z: 0.0 }
     material:
-      type: Gloss
+      type: Lambertian
       albedo: { r: 0.5, g: 0.5, b: 0.5 }
-      reflectance: 0.04
-      metalness: 0.0
 
   - shape:
       type: Sphere
       radius: 1000000.0
       center: { x: 0.0, y: 0.0, z: 1000010.0 }
     material:
-      type: Gloss
+      type: Lambertian
       albedo: { r: 0.5, g: 0.5, b: 0.5 }
-      reflectance: 0.04
-      metalness: 0.0
 
   - shape:
       type: Sphere
       radius: 1000000.0
       center: { x: 0.0, y: 0.0, z: -1000020.0 }
     material:
-      type: Gloss
+      type: Lambertian
       albedo: { r: 0.5, g: 0.5, b: 0.5 }
-      reflectance: 0.04
-      metalness: 0.0
 
   - shape:
       type: Sphere
       radius: 1000000.0
       center: { x: -1000010.0, y: 0.0, z: 0.0 }
     material:
-      type: Gloss
+      type: Lambertian
       albedo: { r: 0.5, g: 0.5, b: 0.5 }
-      reflectance: 0.04
-      metalness: 0.0
 
   - shape:
       type: Sphere
       radius: 1000000.0
       center: { x: 1000010.0, y: 0.0, z: 0.0 }
     material:
-      type: Gloss
+      type: Lambertian
       albedo: { r: 0.5, g: 0.5, b: 0.5 }
-      reflectance: 0.04
-      metalness: 0.0

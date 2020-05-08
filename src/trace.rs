@@ -22,7 +22,10 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
             break;
         };
 
-        let cos_out: f64 = ray.direction.dot(collision.normal);
+        let cos_in: f64 = ray.direction.dot(collision.normal * -1);
+        if cos_in <= 0.0 {
+            break;
+        }
 
         match entity {
             Entity::Light(l) => {
@@ -32,6 +35,7 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                 // accumulate.
                 if last_bounce_specular {
                     colour += throughput * l.colour * l.intensity;
+                    colour.check();
                 }
                 break;
             },
@@ -52,18 +56,21 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                             None => false,
                         };
 
-                        if occluded {
+                        let cos_theta = f64::max(0.0, collision.normal.dot(shadow_ray.direction));
+                        if occluded || cos_theta <= 0.0 {
                             Colour::BLACK
                         } else {
                             let base = light.colour * light.intensity;
                             let brdf = o.material.brdf(ray.direction * -1, shadow_ray.direction * -1, collision.normal);
-                            base * brdf * collision.normal.dot(in_dir * -1) * inv_pdf
+                            base * brdf * inv_pdf
                         }
                     },
                     None => Colour::BLACK,
                 };
 
+                direct_illumination.check();
                 colour += direct_illumination * throughput;
+                colour.check();
 
                 let (direction, pdf, brdf, is_specular) = o.material.sample(ray.direction * -1, collision.normal);
                 last_bounce_specular = is_specular;
@@ -74,10 +81,15 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                     direction,
                 );
 
-                let attenuation = brdf / pdf;
+                let cos_theta = collision.normal.dot(direction);
+                let attenuation = brdf * cos_theta / pdf;
                 throughput = throughput * attenuation;
 
-                let emittance = o.material.emittance(ray.direction * -1, cos_out);
+                if throughput.max() <= 0.0 {
+                    break;
+                }
+
+                let emittance = o.material.emittance(ray.direction * -1, cos_in);
                 colour += emittance * throughput;
                 
                 // Chance for the material to eat the ray.

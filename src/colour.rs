@@ -53,7 +53,17 @@ impl Colour {
         }
     }
 
-    fn component_to_byte(x: f64) -> u8 {
+    pub fn check(self) {
+        if self.r < 0.0 || self.g < 0.0 || self.b < 0.0 {
+            panic!("Invalid colour! {:?}", self);
+        }
+    }
+
+    fn component_to_byte(mut x: f64) -> u8 {
+        // Gamma correction.
+        const GAMMA: f64 = 0.45;
+        x = x.powf(GAMMA);
+
         if x >= 1.0 {
             255
         } else if x <= 0.0 {
