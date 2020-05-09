@@ -246,21 +246,24 @@ impl GlossMaterial {
         let r0 = self.fresnel_r0;
         let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
 
-        let is_specular = rand::thread_rng().gen::<f64>() <= r;
+        let specular_chance = r;
+        let is_specular = rand::thread_rng().gen::<f64>() <= specular_chance;
 
-        if is_specular {
+        let (direction, pdf) = if is_specular {
             let direction = self.mirror.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
             let pdf = self.mirror.weight_pdf(vec_out, vec_in, normal);
-            let brdf = self.lambertian.albedo * self.metalness + Colour::WHITE * (1.0 - self.metalness);
-            (direction, pdf * r, brdf, is_specular)
+            (direction, pdf * specular_chance)
         } else {
             let direction = self.lambertian.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
             let pdf = self.lambertian.weight_pdf(vec_out, vec_in, normal);
-            let brdf = self.lambertian.brdf(vec_out, vec_in, normal) * (1.0 - self.metalness);
-            (direction, pdf * (1.0 - r), brdf, is_specular)
-        }
+            (direction, pdf * (1.0 - specular_chance))
+        };
+
+        let brdf = self.brdf(vec_out, direction * -1, normal);
+
+        (direction, pdf, brdf, is_specular)
     }
 }
 
