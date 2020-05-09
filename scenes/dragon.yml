@@ -35,9 +35,9 @@ objects:
       scale: 40.0
     material:
       type: Gloss
-      albedo: { r: 0.30, g: 0.80, b: 0.30 }
-      reflectance: 0.05
-      metalness: 0.0
+      albedo: { r: 0.92, g: 0.78, b: 0.40 }
+      reflectance: 1.0
+      metalness: 1.0
 
   - shape:
       type: Sphere
