@@ -15,6 +15,21 @@ pub enum EntityID {
 }
 
 #[derive(Clone)]
+pub enum Entity {
+    Object(Object),
+    Light(Light),
+}
+
+impl Entity {
+    pub fn id(self) -> EntityID {
+        match self {
+            Entity::Object(o) => EntityID::Object(o.id),
+            Entity::Light(l) => EntityID::Light(l.id),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct Object {
     pub id: usize,
     pub geometry: Geometry,
@@ -30,10 +45,14 @@ pub struct Light {
 }
 
 impl Light {
-    pub fn random_point(&self) -> Vector3 {
+    pub fn entity_id(&self) -> EntityID {
+        EntityID::Light(self.id)
+    }
+
+    pub fn sample(&self, from: Vector3) -> (Vector3, f64) {
         match self.geometry {
-            LightGeometry::Point(v) => v,
-            LightGeometry::Area(p) => p.random_point(),
+            LightGeometry::Point(v) => (v, 1.0),
+            LightGeometry::Area(p) => p.sample(from),
         }
     }
 }
@@ -94,26 +113,39 @@ pub struct Scene {
 
 impl Scene {
     pub fn new(model_library: ModelLibrary, objects: Vec<Object>, lights: Vec<Light>, skybox: Skybox) -> Scene {
-        let primitive_geometry = objects.iter()
+        let object_primitives = objects.iter()
             .map(|o| {
                 let id = o.id;
-                let mut primitives = match o.geometry {
+                let primitives = match o.geometry {
                     Geometry::Primitive(p) => vec![p],
                     Geometry::Mesh(ref m) => m.primitives(&model_library),
                 };
-                primitives.drain(..).map(move|p| (p, EntityID::Object(id))).collect()
+                primitives.into_iter().map(move|p| (p, EntityID::Object(id))).collect()
             })
-            .flat_map(|items: Vec<(Primitive, EntityID)>| { items.into_iter() })
-            .collect();
+            .flat_map(|items: Vec<(Primitive, EntityID)>| { items.into_iter() });
+
+        let light_primitives = lights.iter()
+            .map(|l| {
+                let id = l.id;
+                let primitives = match l.geometry {
+                    LightGeometry::Point(_) => vec![],
+                    LightGeometry::Area(primitive) => std::iter::once(primitive).collect(),
+                };
+                primitives.into_iter().map(move|p| (p, EntityID::Light(id))).collect()
+            })
+            .flat_map(|items: Vec<(Primitive, EntityID)>| { items.into_iter() });
+
+        let primitive_geometry = object_primitives.chain(light_primitives).collect();
+
         let bvh = construct_bvh_aac(primitive_geometry);
         Scene { skybox, objects, lights, bvh }
     }
 
-    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Material)> {
+    pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Entity)> {
         self.bvh.find_intersection(ray).map(|(col, entity)| {
             match entity {
-                EntityID::Object(id) => Some((col, self.objects[*id].material)),
-                _ => None,
+                EntityID::Object(id) => Some((col, Entity::Object(self.objects[*id].clone()))),
+                EntityID::Light(id) => Some((col, Entity::Light(self.lights[*id].clone()))),
             }
         }).flatten()
     }

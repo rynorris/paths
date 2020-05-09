@@ -7,6 +7,26 @@ use crate::scene::ModelLibrary;
 use crate::matrix::Matrix3;
 use crate::vector::Vector3;
 
+pub fn cosine_sample_hemisphere() -> Vector3 {
+    let mut rng = rand::thread_rng();
+    let u = rng.gen::<f64>();
+    let v = rng.gen::<f64>();
+
+    let r = u.sqrt();
+    let theta = 2.0 * PI * v;
+
+    // y is up.
+    let x = r * theta.cos();
+    let y = 1.0 - u;
+    let z = r * theta.sin();
+
+    Vector3::new(x, y, z)
+}
+
+pub fn switch_basis(v: Vector3, i: Vector3, j: Vector3, k: Vector3) -> Vector3 {
+    i* v.x + j * v.y + k * v.z
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Ray {
     pub origin: Vector3,
@@ -109,15 +129,30 @@ impl Primitive {
         }
     }
 
-    pub fn random_point(&self) -> Vector3 {
+    pub fn sample(&self, from: Vector3) -> (Vector3, f64) {
         match self {
             Primitive::Sphere(sphere) => {
                 let mut rng = rand::thread_rng();
-                let yaw = (rng.gen::<f64>() - 0.5) * PI;
-                let pitch = (rng.gen::<f64>() - 0.5) * PI;
-                let roll = (rng.gen::<f64>() - 0.5) * PI;
-                let rot = Matrix3::rotation(yaw, pitch, roll);
-                sphere.center + rot * Vector3::new(sphere.radius, 0.0, 0.0)
+                let u: f64 = rng.gen();
+                let v: f64 = rng.gen();
+                let theta = 2.0 * PI * u;
+                let phi = (2.0 * v - 1.0).acos();
+
+                let n = Vector3::new(
+                    phi.sin() * theta.cos(),
+                    phi.sin() * theta.sin(),
+                    phi.cos(),
+                );
+
+                let point = sphere.center + n * sphere.radius;
+                let out_vec = from - point;
+                let out_dir = out_vec.normed();
+                let distance_sq = out_vec.magnitude();
+
+                let area = 4.0 * PI * sphere.radius * sphere.radius;
+                let inv_pdf = area * n.dot(out_dir) / distance_sq;
+
+                (out_dir, f64::max(0.0, inv_pdf))
             },
             Primitive::Triangle(_) => panic!("random_point() not supported on Triangle Primitive."),
         }
@@ -284,5 +319,41 @@ impl BoundedVolume for TrianglePrimitive {
         let max_z = v1.z.max(v2.z.max(v3.z));
 
         AABB::new(Vector3::new(min_x, min_y, min_z), Vector3::new(max_x, max_y, max_z))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::geom::*;
+
+    #[test]
+    fn cosine_hemisphere() {
+        for _ in 0..10 {
+            println!("Cosine hemisphere: {:?}", cosine_sample_hemisphere());
+        }
+    }
+
+    mod switch_basis {
+        macro_rules! test_switch_basis{
+            ($name:ident: ($ix:expr, $iy:expr, $iz:expr), ($nx:expr, $ny:expr, $nz:expr) => ($ox:expr, $oy:expr, $oz:expr)) => {
+                #[test]
+                fn $name() {
+                    let in_vec = Vector3::new($ix, $iy, $iz);
+                    let normal = Vector3::new($nx, $ny, $nz);
+                    let exp_vec = Vector3::new($ox, $oy, $oz);
+                    let (i, j, k) = normal.form_basis();
+                    let out_vec = switch_basis(in_vec, i, j, k);
+                    assert_eq!(out_vec, exp_vec);
+                }
+            }
+        }
+
+        use crate::geom::*;
+        use crate::vector::Vector3;
+
+        test_switch_basis!(both_point_up: (0.0, 1.0, 0.0), (0.0, 1.0, 0.0) => (0.0, 1.0, 0.0));
+        test_switch_basis!(upward_vec_sideways_normal: (0.0, 1.0, 0.0), (1.0, 0.0, 0.0) => (1.0, 0.0, 0.0));
+        test_switch_basis!(sideways_vec_upward_normal: (1.0, 0.0, 0.0), (0.0, 1.0, 0.0) => (1.0, 0.0, 0.0));
+        test_switch_basis!(sideways_vec_sideways_normal: (1.0, 0.0, 0.0), (1.0, 0.0, 0.0) => (0.0, 0.0, 1.0));
     }
 }

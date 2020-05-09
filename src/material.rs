@@ -4,6 +4,7 @@ use rand;
 use rand::Rng;
 
 use crate::colour::Colour;
+use crate::geom;
 use crate::vector::Vector3;
 
 
@@ -51,8 +52,8 @@ impl Material {
         Material::Mirror(MirrorMaterial{})
     }
 
-    pub fn gloss(albedo: Colour, reflectance: f64) -> Material {
-        Material::Gloss(GlossMaterial::new(albedo, reflectance))
+    pub fn gloss(albedo: Colour, reflectance: f64, metalness: f64) -> Material {
+        Material::Gloss(GlossMaterial::new(albedo, reflectance, metalness))
     }
 
     pub fn cook_torrance(albedo: Colour, roughness: f64) -> Material {
@@ -61,6 +62,15 @@ impl Material {
 
     pub fn fresnel_combination(diffuse: BasicMaterial, specular: BasicMaterial, refractive_index: f64) -> Material {
         Material::FresnelCombination(FresnelCombinationMaterial::new(diffuse, specular, refractive_index))
+    }
+
+    pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
+        match self {
+            Material::Lambertian(mat) => mat.sample(vec_out, normal),
+            Material::Mirror(mat) => mat.sample(vec_out, normal),
+            Material::Gloss(mat) => mat.sample(vec_out, normal),
+            _ => panic!("Not implemented"),
+        }
     }
 
     pub fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
@@ -148,39 +158,35 @@ pub struct LambertianMaterial {
     emittance: Colour,
 }
 
+impl LambertianMaterial {
+    pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
+        let direction = self.sample_pdf(vec_out, normal);
+        let pdf = self.weight_pdf(vec_out, direction * -1, normal);
+        let brdf = self.brdf(vec_out, direction * -1, normal);
+        (direction, pdf, brdf, false)
+    }
+}
+
 impl MaterialInterface for LambertianMaterial {
-    fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> f64 {
-        1.0
+    fn weight_pdf(&self, _vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
+        normal.dot(vec_in * -1) / PI
     }
 
     fn sample_pdf(&self, _vec_out: Vector3, normal: Vector3) -> Vector3 {
-        let mut rng = rand::thread_rng();
-        let seed = rng.gen::<f64>();  // between 0 and 1.
-
-        let sin2_theta = seed;
-        let cos2_theta = 1.0 - sin2_theta;
-        let cos_theta = cos2_theta.sqrt();
-        let sin_theta = sin2_theta.sqrt();
-        let orientation = rng.gen::<f64>() * PI * 2.0;
-
-        let random_direction = Vector3::new(
-            sin_theta * orientation.cos(),
-            cos_theta,
-            sin_theta * orientation.sin(),
-            );
+        let random_direction = geom::cosine_sample_hemisphere();
 
         let (i, j, k) = normal.form_basis();
-        let world_direction = to_basis(random_direction, i, j, k);
+        let world_direction = geom::switch_basis(random_direction, i, j, k);
 
-        world_direction
+        world_direction.normed()
     }
 
     fn emittance(&self, _vec_out: Vector3, _cos_out: f64) -> Colour {
         self.emittance
     }
 
-    fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
-        self.albedo
+    fn brdf(&self, _vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
+        self.albedo * normal.dot(vec_in * -1) / PI
     }
 }
 
@@ -190,6 +196,10 @@ pub struct MirrorMaterial {}
 impl MirrorMaterial {
     fn reflect(vector: Vector3, normal: Vector3) -> Vector3 {
         ((normal * normal.dot(vector) * 2) - vector).normed()
+    }
+
+    pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
+        (self.sample_pdf(vec_out, normal), 1.0, Colour::WHITE, true)
     }
 }
 
@@ -207,7 +217,8 @@ impl MaterialInterface for MirrorMaterial {
     }
 
     fn brdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> Colour {
-        Colour::rgb(1.0, 1.0, 1.0)
+        // 0 chance of any particular ray.
+        Colour::BLACK
     }
 }
 
@@ -216,26 +227,60 @@ pub struct GlossMaterial {
     lambertian: LambertianMaterial,
     mirror: MirrorMaterial,
     fresnel_r0: f64,
+    metalness: f64,
 }
 
 impl GlossMaterial {
-    pub fn new(albedo: Colour, reflectance: f64) -> GlossMaterial {
-        let n1: f64 = 1.0;  // Air
-        let n2: f64 = reflectance;
-
-        // Schlick's approximation for the fresnel factor.
-        let r0 = ((n1 - n2) / (n1 + n2)).powf(2.0);
+    pub fn new(albedo: Colour, reflectance: f64, metalness: f64) -> GlossMaterial {
         GlossMaterial {
             lambertian: LambertianMaterial{ albedo, emittance: Colour::BLACK },
             mirror: MirrorMaterial{},
-            fresnel_r0: r0,
+            fresnel_r0: reflectance,
+            metalness,
         }
+    }
+
+    // Returns (direction, pdf, brdf, is_specular)
+    pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
+        let cos_theta = vec_out.dot(normal);
+        let r0 = self.fresnel_r0;
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
+        let specular_chance = r;
+        let is_specular = rand::thread_rng().gen::<f64>() <= specular_chance;
+
+        let (direction, pdf) = if is_specular {
+            let direction = self.mirror.sample_pdf(vec_out, normal);
+            let vec_in = direction * -1.0;
+            let pdf = self.mirror.weight_pdf(vec_out, vec_in, normal);
+            (direction, pdf * specular_chance)
+        } else {
+            let direction = self.lambertian.sample_pdf(vec_out, normal);
+            let vec_in = direction * -1.0;
+            let pdf = self.lambertian.weight_pdf(vec_out, vec_in, normal);
+            (direction, pdf * (1.0 - specular_chance))
+        };
+
+        let brdf = self.brdf(vec_out, direction * -1, normal);
+
+        (direction, pdf, brdf, is_specular)
     }
 }
 
 impl MaterialInterface for GlossMaterial {
-    fn weight_pdf(&self, _vec_out: Vector3, _vec_in: Vector3, _normal: Vector3) -> f64 {
-        1.0
+    fn weight_pdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
+        let cos_theta = vec_out.dot(normal);
+
+        let r0 = self.fresnel_r0;
+        let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
+
+        // Probability of this ray given diffuse scattering.
+        let diffuse = self.lambertian.weight_pdf(vec_out, vec_in, normal);
+
+        // Probability of this ray given specular reflection.
+        let specular = self.mirror.weight_pdf(vec_out, vec_in, normal);
+
+        diffuse * (1.0 - r) * specular * r
     }
 
     fn sample_pdf(&self, vec_out: Vector3, normal: Vector3) -> Vector3 {
@@ -254,13 +299,16 @@ impl MaterialInterface for GlossMaterial {
         Colour::BLACK
     }
 
-    fn brdf(&self, vec_out: Vector3, _vec_in: Vector3, normal: Vector3) -> Colour {
+    fn brdf(&self, vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
         let cos_theta = vec_out.dot(normal);
 
         let r0 = self.fresnel_r0;
         let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
 
-        self.lambertian.albedo * (1.0 - r) + Colour::rgb(1.0, 1.0, 1.0) * r
+        let diffuse = self.lambertian.brdf(vec_out, vec_in, normal) * (1.0 - self.metalness);
+        let specular = self.mirror.brdf(vec_out, vec_in, normal);
+
+        diffuse * (1.0 - r) + specular * r
     }
 }
 
@@ -381,7 +429,7 @@ impl MaterialInterface for CookTorranceMaterial {
         }
 
         let (i, j, k) = normal.form_basis();
-        let world_facet_normal = to_basis(facet_normal, i, j, k).normed();
+        let world_facet_normal = geom::switch_basis(facet_normal, i, j, k).normed();
 
         let tmp = world_facet_normal.dot(normal);
         if tmp < 0.0 {
@@ -415,9 +463,5 @@ impl MaterialInterface for CookTorranceMaterial {
         // Specular component.
         self.albedo * (d * g) / (4.0 * ndv * ndl)
     }
-}
-
-fn to_basis(v: Vector3, i: Vector3, j: Vector3, k: Vector3) -> Vector3 {
-    i* v.x + j * v.y + k * v.z
 }
 

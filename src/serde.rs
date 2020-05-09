@@ -239,7 +239,7 @@ impl From<&MaterialDescription> for Material {
     fn from(desc: &MaterialDescription) -> Material {
         match desc {
             MaterialDescription::Lambertian(mat) => Material::lambertian(mat.albedo.to_colour(), Colour::BLACK),
-            MaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance),
+            MaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance, mat.metalness),
             MaterialDescription::Mirror(_mat) => Material::mirror(),
             MaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness),
             MaterialDescription::Fresnel(mat) => 
@@ -256,7 +256,7 @@ impl From<BasicMaterialDescription> for BasicMaterial {
     fn from(desc: BasicMaterialDescription) -> BasicMaterial {
         match desc {
             BasicMaterialDescription::Lambertian(mat) => Material::lambertian(mat.albedo.to_colour(), Colour::BLACK).to_basic(),
-            BasicMaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance).to_basic(),
+            BasicMaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance, mat.metalness).to_basic(),
             BasicMaterialDescription::Mirror(_mat) => Material::mirror().to_basic(),
             BasicMaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness).to_basic(),
         }
@@ -272,6 +272,7 @@ pub struct LambertianMaterialDescription {
 pub struct GlossMaterialDescription {
     pub albedo: ColourDescription,
     pub reflectance: f64,
+    pub metalness: f64,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

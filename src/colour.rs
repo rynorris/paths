@@ -53,14 +53,23 @@ impl Colour {
         }
     }
 
-    fn component_to_byte(x: f64) -> u8 {
-        let rounded = (x * 256.0) as i16;
-        if rounded >= 256 {
+    pub fn check(self) {
+        if self.r < 0.0 || self.g < 0.0 || self.b < 0.0 {
+            panic!("Invalid colour! {:?}", self);
+        }
+    }
+
+    fn component_to_byte(mut x: f64) -> u8 {
+        // Gamma correction.
+        const GAMMA: f64 = 0.45;
+        x = x.powf(GAMMA);
+
+        if x >= 1.0 {
             255
-        } else if rounded <= 0 {
+        } else if x <= 0.0 {
             0
         } else {
-            rounded as u8
+            (x * 256.0) as u8
         }
     }
 }
