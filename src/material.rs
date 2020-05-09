@@ -67,6 +67,7 @@ impl Material {
     pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
         match self {
             Material::Lambertian(mat) => mat.sample(vec_out, normal),
+            Material::Mirror(mat) => mat.sample(vec_out, normal),
             Material::Gloss(mat) => mat.sample(vec_out, normal),
             _ => panic!("Not implemented"),
         }
@@ -196,6 +197,10 @@ impl MirrorMaterial {
     fn reflect(vector: Vector3, normal: Vector3) -> Vector3 {
         ((normal * normal.dot(vector) * 2) - vector).normed()
     }
+
+    pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
+        (self.sample_pdf(vec_out, normal), 1.0, Colour::WHITE, true)
+    }
 }
 
 impl MaterialInterface for MirrorMaterial {
@@ -248,13 +253,13 @@ impl GlossMaterial {
             let vec_in = direction * -1.0;
             let pdf = self.mirror.weight_pdf(vec_out, vec_in, normal);
             let brdf = self.lambertian.albedo * self.metalness + Colour::WHITE * (1.0 - self.metalness);
-            (direction, pdf * r, brdf * r, is_specular)
+            (direction, pdf * r, brdf, is_specular)
         } else {
             let direction = self.lambertian.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
             let pdf = self.lambertian.weight_pdf(vec_out, vec_in, normal);
             let brdf = self.lambertian.brdf(vec_out, vec_in, normal) * (1.0 - self.metalness);
-            (direction, pdf * (1.0 - r), brdf * (1.0 - r), is_specular)
+            (direction, pdf * (1.0 - r), brdf, is_specular)
         }
     }
 }

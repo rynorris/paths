@@ -81,8 +81,7 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                     direction,
                 );
 
-                let cos_theta = collision.normal.dot(direction);
-                let attenuation = brdf * cos_theta / pdf;
+                let attenuation = brdf / pdf;
                 throughput = throughput * attenuation;
 
                 if throughput.max() <= 0.0 {

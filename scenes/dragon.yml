@@ -19,7 +19,7 @@ models:
     file: "./dragon_recon/dragon_vrip.ply"
 
 lights:
-  - colour: { r: 1.0, g: 1.0, b: 0.95 }
+  - colour: { r: 1.0, g: 1.0, b: 1.0 }
     intensity: 200.0
     geometry:
       type: Sphere
@@ -35,7 +35,7 @@ objects:
       scale: 40.0
     material:
       type: Gloss
-      albedo: { r: 0.95, g: 0.80, b: 0.30 }
+      albedo: { r: 0.92, g: 0.78, b: 0.40 }
       reflectance: 1.0
       metalness: 1.0
 
