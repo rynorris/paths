@@ -166,8 +166,8 @@ impl LambertianMaterial {
 }
 
 impl MaterialInterface for LambertianMaterial {
-    fn weight_pdf(&self, vec_out: Vector3, _vec_in: Vector3, normal: Vector3) -> f64 {
-        vec_out.dot(normal) / PI
+    fn weight_pdf(&self, _vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> f64 {
+        normal.dot(vec_in * -1) / PI
     }
 
     fn sample_pdf(&self, _vec_out: Vector3, normal: Vector3) -> Vector3 {
@@ -254,14 +254,14 @@ impl GlossMaterial {
         if is_specular {
             let direction = self.mirror.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
-            let pdf = self.mirror.weight_pdf(vec_in, vec_out, normal);
+            let pdf = self.mirror.weight_pdf(vec_out, vec_in, normal);
             let brdf = self.lambertian.albedo * self.metalness + Colour::WHITE * (1.0 - self.metalness);
             (direction, pdf * r, brdf * r, is_specular)
         } else {
             let direction = self.lambertian.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
-            let pdf = self.lambertian.weight_pdf(vec_in, vec_out, normal);
-            let brdf = self.lambertian.brdf(vec_in, vec_out, normal) * (1.0 - self.metalness);
+            let pdf = self.lambertian.weight_pdf(vec_out, vec_in, normal);
+            let brdf = self.lambertian.brdf(vec_out, vec_in, normal) * (1.0 - self.metalness);
             (direction, pdf * (1.0 - r), brdf * (1.0 - r), is_specular)
         }
     }
