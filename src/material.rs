@@ -4,6 +4,7 @@ use rand;
 use rand::Rng;
 
 use crate::colour::Colour;
+use crate::geom;
 use crate::vector::Vector3;
 
 
@@ -171,19 +172,10 @@ impl MaterialInterface for LambertianMaterial {
     }
 
     fn sample_pdf(&self, _vec_out: Vector3, normal: Vector3) -> Vector3 {
-        let mut rng = rand::thread_rng();
-        let seed = rng.gen::<f64>();  // between 0 and 1.
-
-        let r = seed.sqrt();
-        let theta = rng.gen::<f64>() * PI * 2.0;
-        let x = r * theta.cos();
-        let y = r * theta.sin();
-        let z = (1.0 - x * x - y * y).sqrt();
-
-        let random_direction = Vector3::new(x, y, z);
+        let random_direction = geom::cosine_sample_hemisphere();
 
         let (i, j, k) = normal.form_basis();
-        let world_direction = to_basis(random_direction, i, j, k);
+        let world_direction = geom::switch_basis(random_direction, i, j, k);
 
         world_direction.normed()
     }
@@ -429,7 +421,7 @@ impl MaterialInterface for CookTorranceMaterial {
         }
 
         let (i, j, k) = normal.form_basis();
-        let world_facet_normal = to_basis(facet_normal, i, j, k).normed();
+        let world_facet_normal = geom::switch_basis(facet_normal, i, j, k).normed();
 
         let tmp = world_facet_normal.dot(normal);
         if tmp < 0.0 {
@@ -463,9 +455,5 @@ impl MaterialInterface for CookTorranceMaterial {
         // Specular component.
         self.albedo * (d * g) / (4.0 * ndv * ndl)
     }
-}
-
-fn to_basis(v: Vector3, i: Vector3, j: Vector3, k: Vector3) -> Vector3 {
-    i* v.x + j * v.y + k * v.z
 }
 
