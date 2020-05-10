@@ -9,7 +9,7 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 ### Implementation Checklist
 
 - [x] Basic path tracing of spheres
-- [ ] Point lights
+- [x] Point lights
 - [x] Multithreading
 - [x] Collision acceleration (BVH)
 - [ ] Textures
