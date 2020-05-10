@@ -29,6 +29,7 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 
 [2020/05/10] Rewritten large parts of the renderer so that the results match a reference renderer ([Mitsuba](https://www.mitsuba-renderer.org/))
 ![image](https://user-images.githubusercontent.com/3620166/81478384-02349800-9258-11ea-93cb-58c7f958524e.png)
+![image](https://user-images.githubusercontent.com/3620166/81502110-ef34cd00-9316-11ea-8d4b-e122d8d6d901.png)
 
 [2020/05/04] Next event estimation to efficiently simulate point/area light sources
 ![image](https://user-images.githubusercontent.com/3620166/80952676-01090280-8e35-11ea-9580-db4ec2e045bc.png)
