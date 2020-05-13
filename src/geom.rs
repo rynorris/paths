@@ -60,6 +60,13 @@ pub struct Collision {
     pub distance: f64,
     pub location: Vector3,
     pub normal: Vector3,
+    pub metadata: CollisionMetadata,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum CollisionMetadata {
+    None,
+    Mesh(usize, f64, f64, f64),
 }
 
 pub struct AABB {
@@ -89,7 +96,7 @@ pub enum Geometry {
 
 #[derive(Clone, Debug)]
 pub struct Mesh {
-    model: String,
+    pub model: String,
     translation: Vector3,
     rotation: Matrix3,
     scale: f64,
@@ -108,6 +115,10 @@ impl Mesh {
             .map(|t| t.transform(self.translation, self.rotation, self.scale))
             .collect()
     }
+
+    pub fn rotate(&self, v: Vector3) -> Vector3 {
+        self.rotation * v
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -121,8 +132,8 @@ impl Primitive {
         Primitive::Sphere(SpherePrimitive{ center, radius })
     }
 
-    pub fn triangle(vertices: [Vector3; 3], surface_normal: Vector3, vertex_normals: [Vector3; 3]) -> Primitive {
-        Primitive::Triangle(TrianglePrimitive{ vertices, surface_normal, vertex_normals })
+    pub fn triangle(index: usize, vertices: [Vector3; 3], surface_normal: Vector3) -> Primitive {
+        Primitive::Triangle(TrianglePrimitive{ index, vertices, surface_normal })
     }
 
     pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> Primitive {
@@ -219,7 +230,8 @@ impl BoundedVolume for SpherePrimitive {
         let distance = if d2 > 0.0 { d2 } else { d1 };
         let location = o + (l * distance);
         let normal = (location - c).normed();
-        Some(Collision{ distance, location, normal, })
+        let metadata = CollisionMetadata::None;
+        Some(Collision{ distance, location, normal, metadata })
     }
 
     fn aabb(&self) -> AABB {
@@ -230,25 +242,21 @@ impl BoundedVolume for SpherePrimitive {
 
 #[derive(Clone, Copy, Debug)]
 pub struct TrianglePrimitive {
+    pub index: usize,
     pub vertices: [Vector3; 3],
     pub surface_normal: Vector3,
-    pub vertex_normals: [Vector3; 3],
 }
 
 impl TrianglePrimitive {
     pub fn transform(&self, translation: Vector3, rotation: Matrix3, scale: f64) -> TrianglePrimitive {
         TrianglePrimitive {
+            index: self.index,
             vertices: [
                 rotation * self.vertices[0] * scale + translation,
                 rotation * self.vertices[1] * scale + translation,
                 rotation * self.vertices[2] * scale + translation,
             ],
             surface_normal: rotation.clone() * self.surface_normal,
-            vertex_normals: [
-                rotation * self.vertex_normals[0],
-                rotation * self.vertex_normals[1],
-                rotation * self.vertex_normals[2],
-            ],
         }
     }
 }
@@ -259,9 +267,6 @@ impl BoundedVolume for TrianglePrimitive {
         let b = self.vertices[1];
         let c = self.vertices[2];
         let n = self.surface_normal;
-        let an = self.vertex_normals[0];
-        let bn = self.vertex_normals[1];
-        let cn = self.vertex_normals[2];
 
         let cos_theta = n.dot(ray.direction);
 
@@ -287,6 +292,7 @@ impl BoundedVolume for TrianglePrimitive {
         let by = area_pca / area_abc;
         let bz = 1.0 - bx - by;
 
+        /*
         let mut smooth_normal = an * bx + bn * by + cn * bz;
 
         // If the smoothed face of the triangle curves away from the ray then scale it back so it
@@ -297,13 +303,15 @@ impl BoundedVolume for TrianglePrimitive {
             let scale = (cos_alpha - epsilon) / (cos_theta + cos_alpha);
             smooth_normal = (n * scale + smooth_normal * (1.0 - scale)).normed();
         }
+        */
         
         if bx < 0.0 || by < 0.0 || bz < 0.0 {
             None
         } else {
             // Flip the normal if we're hitting the triangle from the back;
             let back_side_multiplier = if cos_theta > 0.0 { -1.0 } else { 1.0 };
-            Some(Collision{ distance: t, location: p, normal: smooth_normal * back_side_multiplier })
+            let metadata = CollisionMetadata::Mesh(self.index, bx, by, bz);
+            Some(Collision{ distance: t, location: p, normal: n * back_side_multiplier, metadata })
         }
     }
 

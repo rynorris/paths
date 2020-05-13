@@ -40,7 +40,7 @@ impl ModelLibrary {
         println!("Loading model '{}' from '{}'", name, filepath);
         let path = std::path::Path::new(&filepath);
         let extension = path.extension().map(|osstr| osstr.to_str()).flatten();
-        let model = match extension {
+        let mut model = match extension {
             Some("obj") => {
                 obj::load_obj_file(&filepath)
             },
@@ -50,6 +50,8 @@ impl ModelLibrary {
             Some(ext) => panic!("Unknown file extension: {}", ext),
             None => panic!("Could not identify filetype for path because it has no extension: {:?}", path),
         };
+
+        model.compute_vertex_normals();
 
         self.models.insert(name.clone(), model);
     }
@@ -76,6 +78,22 @@ impl Model {
         Model { vertices, faces, face_normals, vertex_normals: None }
     }
 
+    pub fn smooth_normal(&self, face_ix: usize, bx: f64, by: f64, bz: f64) -> Vector3 {
+        match self.vertex_normals {
+            Some(ref vertex_normals) => {
+                let (a, b, c) = self.faces[face_ix];
+                let an = vertex_normals[a];
+                let bn = vertex_normals[b];
+                let cn = vertex_normals[c];
+
+                let smooth_normal = an * bx + bn * by + cn * bz;
+
+                smooth_normal
+            },
+            None => panic!("Vertex normals not pre-computed"),
+        }
+    }
+
     pub fn resolve_primitives(&self) -> Vec<Primitive> {
         self.faces.iter()
             .enumerate()
@@ -87,20 +105,10 @@ impl Model {
                 let vertices = [v1, v2, v3];
                 let surface_normal = self.face_normals[ix];
 
-                let vertex_normals = match self.vertex_normals {
-                    Some(ref vertex_normals) => {
-                        let vn1 = vertex_normals[a];
-                        let vn2 = vertex_normals[b];
-                        let vn3 = vertex_normals[c];
-                        [vn1, vn2, vn3]
-                    },
-                    None => [Vector3::zero(), Vector3::zero(), Vector3::zero()],
-                };
-
                 if surface_normal.is_nan() {
                     None
                 } else {
-                    Some(Primitive::triangle(vertices, surface_normal, vertex_normals))
+                    Some(Primitive::triangle(ix, vertices, surface_normal))
                 }
             })
             .collect()
