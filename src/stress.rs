@@ -46,12 +46,12 @@ fn random_material() -> serde::MaterialDescription {
     let colour = random_colour();
     match choice {
         0 => serde::MaterialDescription::Gloss(serde::GlossMaterialDescription{
-            albedo: colour,
+            albedo: serde::MaterialColourDescription::Rgb { r: colour.r, g: colour.g, b: colour.b },
             reflectance: 1.0 + rng.gen::<f64>() * 2.0,
             metalness: 0.0,
         }),
         1 => serde::MaterialDescription::Lambertian(serde::LambertianMaterialDescription{
-            albedo: serde::MaterialColourDescription::Static { r: colour.r, g: colour.g, b: colour.b },
+            albedo: serde::MaterialColourDescription::Rgb { r: colour.r, g: colour.g, b: colour.b },
         }),
         _ => serde::MaterialDescription::Mirror(serde::MirrorMaterialDescription{}),
     }

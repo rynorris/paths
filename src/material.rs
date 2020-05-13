@@ -39,7 +39,10 @@ impl Material {
     pub fn resolve(self, collision: &Collision, model: &Model) -> Material {
         match self {
             Material::Lambertian(mat) => {
-                Material::lambertian(mat.albedo.resolve(collision, model), mat.emittance)
+                Material::Lambertian(mat.resolve(collision, model))
+            },
+            Material::Gloss(mat) => {
+                Material::Gloss(mat.resolve(collision, model))
             },
             _ => self,
         }
@@ -63,7 +66,7 @@ impl Material {
         Material::Mirror(MirrorMaterial{})
     }
 
-    pub fn gloss(albedo: Colour, reflectance: f64, metalness: f64) -> Material {
+    pub fn gloss(albedo: MaterialColour, reflectance: f64, metalness: f64) -> Material {
         Material::Gloss(GlossMaterial::new(albedo, reflectance, metalness))
     }
 
@@ -199,6 +202,12 @@ pub struct LambertianMaterial {
 }
 
 impl LambertianMaterial {
+    pub fn resolve(&self, collision: &Collision, model: &Model) -> LambertianMaterial {
+        let mut resolved = self.clone();
+        resolved.albedo = self.albedo.resolve(collision, model);
+        resolved
+    }
+
     pub fn sample(&self, vec_out: Vector3, normal: Vector3) -> (Vector3, f64, Colour, bool) {
         let direction = self.sample_pdf(vec_out, normal);
         let pdf = self.weight_pdf(vec_out, direction * -1, normal);
@@ -271,16 +280,22 @@ pub struct GlossMaterial {
 }
 
 impl GlossMaterial {
-    pub fn new(albedo: Colour, reflectance: f64, metalness: f64) -> GlossMaterial {
+    pub fn new(albedo: MaterialColour, reflectance: f64, metalness: f64) -> GlossMaterial {
         GlossMaterial {
             lambertian: LambertianMaterial{
-                albedo: MaterialColour::Static(albedo),
+                albedo: albedo,
                 emittance: Colour::BLACK,
             },
             mirror: MirrorMaterial{},
             fresnel_r0: reflectance,
             metalness,
         }
+    }
+
+    pub fn resolve(&self, collision: &Collision, model: &Model) -> GlossMaterial {
+        let mut resolved = self.clone();
+        resolved.lambertian = self.lambertian.resolve(collision, model);
+        resolved
     }
 
     // Returns (direction, pdf, brdf, is_specular)

@@ -38,14 +38,14 @@ impl ColourDescription {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum MaterialColourDescription {
-    Static { r: f64, g: f64, b: f64 },
+    Rgb { r: f64, g: f64, b: f64 },
     Vertex,
 }
 
 impl MaterialColourDescription {
     pub fn to_material_colour(&self) -> MaterialColour {
         match self {
-            MaterialColourDescription::Static { r, g, b } => MaterialColour::Static(Colour::rgb(*r, *g, *b)),
+            MaterialColourDescription::Rgb { r, g, b } => MaterialColour::Static(Colour::rgb(*r, *g, *b)),
             MaterialColourDescription::Vertex => MaterialColour::Vertex,
         }
     }
@@ -242,7 +242,7 @@ impl From<&MaterialDescription> for Material {
             MaterialDescription::Lambertian(mat) => Material::lambertian(
                 mat.albedo.to_material_colour(), Colour::BLACK
             ),
-            MaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance, mat.metalness),
+            MaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_material_colour(), mat.reflectance, mat.metalness),
             MaterialDescription::Mirror(_mat) => Material::mirror(),
             MaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness),
             MaterialDescription::Fresnel(mat) => 
@@ -261,7 +261,7 @@ impl From<BasicMaterialDescription> for BasicMaterial {
             BasicMaterialDescription::Lambertian(mat) => Material::lambertian(
                 mat.albedo.to_material_colour(), Colour::BLACK
             ).to_basic(),
-            BasicMaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance, mat.metalness).to_basic(),
+            BasicMaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_material_colour(), mat.reflectance, mat.metalness).to_basic(),
             BasicMaterialDescription::Mirror(_mat) => Material::mirror().to_basic(),
             BasicMaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness).to_basic(),
         }
@@ -275,7 +275,7 @@ pub struct LambertianMaterialDescription {
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct GlossMaterialDescription {
-    pub albedo: ColourDescription,
+    pub albedo: MaterialColourDescription,
     pub reflectance: f64,
     pub metalness: f64,
 }
