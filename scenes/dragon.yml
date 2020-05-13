@@ -16,7 +16,7 @@ skybox:
 
 models:
   dragon:
-    file: "./dragon_recon/dragon_vrip.ply"
+    file: "./assets/dragon_recon/dragon_vrip.ply"
 
 lights:
   - colour: { r: 1.0, g: 1.0, b: 1.0 }
@@ -30,6 +30,7 @@ objects:
   - shape:
       type: Mesh
       model: dragon
+      smooth_normals: false
       translation: { x: 0.0, y: -2.2, z: 0.0 }
       rotation: { pitch: 3.1, yaw: 0.0, roll: 0.0 }
       scale: 40.0
