@@ -66,11 +66,11 @@ impl ModelLibrary {
 }
 
 pub struct Model {
-    vertices: Vec<Vector3>,
-    faces: Vec<(usize, usize, usize)>,
-    face_normals: Vec<Vector3>,
-    vertex_normals: Option<Vec<Vector3>>,
-    vertex_colours: Option<Vec<Colour>>,
+    pub vertices: Vec<Vector3>,
+    pub faces: Vec<(usize, usize, usize)>,
+    pub face_normals: Vec<Vector3>,
+    pub vertex_normals: Option<Vec<Vector3>>,
+    pub vertex_colours: Option<Vec<Colour>>,
 }
 
 impl Model {
