@@ -253,13 +253,13 @@ impl GlossMaterial {
             let vec_in = direction * -1.0;
             let pdf = self.mirror.weight_pdf(vec_out, vec_in, normal);
             let brdf = self.lambertian.albedo * self.metalness + Colour::WHITE * (1.0 - self.metalness);
-            (direction, pdf * r, brdf, is_specular)
+            (direction, pdf * r, brdf * r, is_specular)
         } else {
             let direction = self.lambertian.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
             let pdf = self.lambertian.weight_pdf(vec_out, vec_in, normal);
             let brdf = self.lambertian.brdf(vec_out, vec_in, normal) * (1.0 - self.metalness);
-            (direction, pdf * (1.0 - r), brdf, is_specular)
+            (direction, pdf * (1.0 - r), brdf * (1.0 - r), is_specular)
         }
     }
 }
