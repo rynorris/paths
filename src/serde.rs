@@ -79,7 +79,7 @@ impl SceneDescription {
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
                     geom::Geometry::Mesh(
-                        geom::Mesh::new(shp.model.clone(), translation, rotation, shp.scale)
+                        geom::Mesh::new(shp.model.clone(), translation, rotation, shp.scale, shp.smooth_normals)
                     )
                 },
             };
@@ -189,9 +189,16 @@ pub struct SphereDescription {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MeshDescription {
     pub model: String,
+
+    #[serde(default = "default_smooth_normals")]
+    pub smooth_normals: bool,
     pub translation: VectorDescription,
     pub rotation: RotationDescription,
     pub scale: f64,
+}
+
+fn default_smooth_normals() -> bool {
+    true
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

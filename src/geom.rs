@@ -97,14 +97,15 @@ pub enum Geometry {
 #[derive(Clone, Debug)]
 pub struct Mesh {
     pub model: String,
+    pub smooth_normals: bool,
     translation: Vector3,
     rotation: Matrix3,
     scale: f64,
 }
 
 impl Mesh {
-    pub fn new(model: String, translation: Vector3, rotation: Matrix3, scale: f64) -> Mesh {
-        Mesh{ model, translation, rotation, scale }
+    pub fn new(model: String, translation: Vector3, rotation: Matrix3, scale: f64, smooth_normals: bool) -> Mesh {
+        Mesh{ model, translation, rotation, scale, smooth_normals }
     }
 
     pub fn primitives(&self, model_library: &mut ModelLibrary) -> Vec<Primitive> {
@@ -291,19 +292,6 @@ impl BoundedVolume for TrianglePrimitive {
         let bx = area_pbc / area_abc;
         let by = area_pca / area_abc;
         let bz = 1.0 - bx - by;
-
-        /*
-        let mut smooth_normal = an * bx + bn * by + cn * bz;
-
-        // If the smoothed face of the triangle curves away from the ray then scale it back so it
-        // barely doesn't.
-        if smooth_normal.dot(ray.direction) * cos_theta < 0.0 {
-            let epsilon = 0.05;  // Chosen experimentally.
-            let cos_alpha = smooth_normal.dot(ray.direction);
-            let scale = (cos_alpha - epsilon) / (cos_theta + cos_alpha);
-            smooth_normal = (n * scale + smooth_normal * (1.0 - scale)).normed();
-        }
-        */
         
         if bx < 0.0 || by < 0.0 || bz < 0.0 {
             None

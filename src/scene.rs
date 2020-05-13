@@ -147,9 +147,11 @@ impl Scene {
                         Geometry::Mesh(mesh) => {
                             match col.metadata {
                                 CollisionMetadata::Mesh(face_ix, bx, by, bz) => {
-                                    let model = self.models.get(&mesh.model);
-                                    let smooth_normal = model.smooth_normal(face_ix, bx, by, bz);
-                                    col.normal = mesh.rotate(smooth_normal);
+                                    if mesh.smooth_normals {
+                                        let model = self.models.get(&mesh.model);
+                                        let smooth_normal = model.smooth_normal(face_ix, bx, by, bz);
+                                        col.normal = mesh.rotate(smooth_normal);
+                                    }
                                     Some((col, Entity::Object(obj.clone())))
                                 },
                                 CollisionMetadata::None => panic!("Mesh collision should include metadata"),
