@@ -5,7 +5,7 @@ use crate::colour::Colour;
 use crate::matrix::Matrix3;
 use crate::vector::Vector3;
 use crate::geom;
-use crate::material::{BasicMaterial, Material};
+use crate::material::{BasicMaterial, Material, MaterialColour};
 use crate::model;
 use crate::scene;
 
@@ -32,6 +32,22 @@ pub struct ColourDescription {
 impl ColourDescription {
     pub fn to_colour(&self) -> Colour {
         Colour{ r: self.r, g: self.g, b: self.b }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum MaterialColourDescription {
+    Static { r: f64, g: f64, b: f64 },
+    Vertex,
+}
+
+impl MaterialColourDescription {
+    pub fn to_material_colour(&self) -> MaterialColour {
+        match self {
+            MaterialColourDescription::Static { r, g, b } => MaterialColour::Static(Colour::rgb(*r, *g, *b)),
+            MaterialColourDescription::Vertex => MaterialColour::Vertex,
+        }
     }
 }
 
@@ -223,7 +239,9 @@ pub enum BasicMaterialDescription {
 impl From<&MaterialDescription> for Material {
     fn from(desc: &MaterialDescription) -> Material {
         match desc {
-            MaterialDescription::Lambertian(mat) => Material::lambertian(mat.albedo.to_colour(), Colour::BLACK),
+            MaterialDescription::Lambertian(mat) => Material::lambertian(
+                mat.albedo.to_material_colour(), Colour::BLACK
+            ),
             MaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance, mat.metalness),
             MaterialDescription::Mirror(_mat) => Material::mirror(),
             MaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness),
@@ -240,7 +258,9 @@ impl From<&MaterialDescription> for Material {
 impl From<BasicMaterialDescription> for BasicMaterial {
     fn from(desc: BasicMaterialDescription) -> BasicMaterial {
         match desc {
-            BasicMaterialDescription::Lambertian(mat) => Material::lambertian(mat.albedo.to_colour(), Colour::BLACK).to_basic(),
+            BasicMaterialDescription::Lambertian(mat) => Material::lambertian(
+                mat.albedo.to_material_colour(), Colour::BLACK
+            ).to_basic(),
             BasicMaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance, mat.metalness).to_basic(),
             BasicMaterialDescription::Mirror(_mat) => Material::mirror().to_basic(),
             BasicMaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness).to_basic(),
@@ -250,7 +270,7 @@ impl From<BasicMaterialDescription> for BasicMaterial {
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct LambertianMaterialDescription {
-    pub albedo: ColourDescription,
+    pub albedo: MaterialColourDescription,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

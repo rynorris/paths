@@ -102,7 +102,7 @@ pub struct GradientSky {
 
 pub struct Scene {
     pub skybox: Skybox,
-    models: ModelLibrary,
+    pub models: ModelLibrary,
     objects: Vec<Object>,
     lights: Vec<Light>,
     bvh: BVH<EntityID>,

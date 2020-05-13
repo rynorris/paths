@@ -5,6 +5,8 @@ use rand::Rng;
 
 use crate::colour::Colour;
 use crate::geom;
+use crate::geom::{Collision, CollisionMetadata};
+use crate::model::Model;
 use crate::vector::Vector3;
 
 
@@ -34,6 +36,15 @@ pub enum BasicMaterial {
 }
 
 impl Material {
+    pub fn resolve(self, collision: &Collision, model: &Model) -> Material {
+        match self {
+            Material::Lambertian(mat) => {
+                Material::lambertian(mat.albedo.resolve(collision, model), mat.emittance)
+            },
+            _ => self,
+        }
+    }
+
     pub fn to_basic(self) -> BasicMaterial {
         match self {
             Material::Lambertian(mat) => BasicMaterial::Lambertian(mat),
@@ -44,7 +55,7 @@ impl Material {
         }
     }
 
-    pub fn lambertian(albedo: Colour, emittance: Colour) -> Material {
+    pub fn lambertian(albedo: MaterialColour, emittance: Colour) -> Material {
         Material::Lambertian(LambertianMaterial{ albedo, emittance })
     }
 
@@ -153,8 +164,37 @@ impl BasicMaterial {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub enum MaterialColour {
+    Static(Colour),
+    Vertex,
+}
+
+impl MaterialColour {
+    pub fn colour(&self) -> Colour {
+        match self {
+            MaterialColour::Static(c) => *c,
+            _ => panic!("Material must be resolved before use"),
+        }
+    }
+
+    pub fn resolve(&self, collision: &Collision, model: &Model) -> MaterialColour {
+        match self {
+            MaterialColour::Static(c) => MaterialColour::Static(*c),
+            MaterialColour::Vertex => {
+                match collision.metadata {
+                    CollisionMetadata::Mesh(face_ix, bx, by, bz) => {
+                        MaterialColour::Static(model.smooth_colour(face_ix, bx, by, bz))
+                    },
+                    _ => panic!("Collision with mesh must have mesh metadata"),
+                }
+            },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct LambertianMaterial {
-    albedo: Colour,
+    albedo: MaterialColour,
     emittance: Colour,
 }
 
@@ -186,7 +226,7 @@ impl MaterialInterface for LambertianMaterial {
     }
 
     fn brdf(&self, _vec_out: Vector3, vec_in: Vector3, normal: Vector3) -> Colour {
-        self.albedo * normal.dot(vec_in * -1) / PI
+        self.albedo.colour() * normal.dot(vec_in * -1) / PI
     }
 }
 
@@ -233,7 +273,10 @@ pub struct GlossMaterial {
 impl GlossMaterial {
     pub fn new(albedo: Colour, reflectance: f64, metalness: f64) -> GlossMaterial {
         GlossMaterial {
-            lambertian: LambertianMaterial{ albedo, emittance: Colour::BLACK },
+            lambertian: LambertianMaterial{
+                albedo: MaterialColour::Static(albedo),
+                emittance: Colour::BLACK,
+            },
             mirror: MirrorMaterial{},
             fresnel_r0: reflectance,
             metalness,
@@ -255,7 +298,7 @@ impl GlossMaterial {
             let direction = self.mirror.sample_pdf(vec_out, normal);
             let vec_in = direction * -1.0;
             let pdf = self.mirror.weight_pdf(vec_out, vec_in, normal);
-            let brdf = self.lambertian.albedo * self.metalness + Colour::WHITE * (1.0 - self.metalness);
+            let brdf = self.lambertian.albedo.colour() * self.metalness + Colour::WHITE * (1.0 - self.metalness);
             (direction, pdf * specular_chance, brdf * r, is_specular)
         } else {
             let direction = self.lambertian.sample_pdf(vec_out, normal);

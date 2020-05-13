@@ -2,8 +2,9 @@ use std::fs::File;
 
 use ply_rs::parser;
 use ply_rs::ply;
-use ply_rs::ply::PropertyAccess;
+use ply_rs::ply::{PropertyAccess, ElementDef};
 
+use crate::colour::Colour;
 use crate::model::Model;
 use crate::vector::Vector3;
 
@@ -53,5 +54,25 @@ pub fn load_ply_file(filename: &str) -> Model {
     println!("Loaded {} vertices and {} faces.", vertices.len(), faces.len());
     println!("Model bounds: X: {}-{}, Y: {}-{}, Z: {}-{}", min_x, max_x, min_y, max_y, min_z, max_z);
 
-    Model::new(vertices, faces)
+    let mut model = Model::new(vertices, faces);
+
+    if has_vertex_colours(vertex) {
+        println!("Loading vertex colours...");
+
+        let vertex_colours: Vec<Colour> = ply_vertices.iter().map(|v| {
+            Colour{
+                r: v.get_uchar(&vertex.properties["red"].name).unwrap() as f64 / 255.0,
+                g: v.get_uchar(&vertex.properties["green"].name).unwrap() as f64 / 255.0,
+                b: v.get_uchar(&vertex.properties["blue"].name).unwrap() as f64 / 255.0,
+            }
+        }).collect();
+
+        model.attach_vertex_colours(vertex_colours);
+    }
+
+    model
+}
+
+fn has_vertex_colours(vertex: &ElementDef) -> bool {
+    vertex.properties.contains_key("red") && vertex.properties.contains_key("green") && vertex.properties.contains_key("blue")
 }

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::colour::Colour;
 use crate::geom::Primitive;
 use crate::obj;
 use crate::ply;
@@ -69,13 +70,24 @@ pub struct Model {
     faces: Vec<(usize, usize, usize)>,
     face_normals: Vec<Vector3>,
     vertex_normals: Option<Vec<Vector3>>,
+    vertex_colours: Option<Vec<Colour>>,
 }
 
 impl Model {
     pub fn new(vertices: Vec<Vector3>, faces: Vec<(usize, usize, usize)>) -> Model {
         let face_normals = Model::compute_face_normals(&vertices, &faces);
 
-        Model { vertices, faces, face_normals, vertex_normals: None }
+        Model{ 
+            vertices,
+            faces,
+            face_normals,
+            vertex_normals: None,
+            vertex_colours: None,
+        }
+    }
+
+    pub fn attach_vertex_colours(&mut self, vertex_colours: Vec<Colour>) {
+        self.vertex_colours = Some(vertex_colours);
     }
 
     pub fn smooth_normal(&self, face_ix: usize, bx: f64, by: f64, bz: f64) -> Vector3 {
@@ -91,6 +103,22 @@ impl Model {
                 smooth_normal
             },
             None => panic!("Vertex normals not pre-computed"),
+        }
+    }
+
+    pub fn smooth_colour(&self, face_ix: usize, bx: f64, by: f64, bz: f64) -> Colour {
+        match self.vertex_colours {
+            Some(ref vertex_colours) => {
+                let (a, b, c) = self.faces[face_ix];
+                let ac = vertex_colours[a];
+                let bc = vertex_colours[b];
+                let cc = vertex_colours[c];
+
+                let smooth_colour = ac * bx + bc * by + cc * bz;
+
+                smooth_colour
+            },
+            None => panic!("Model does not have vertex colours"),
         }
     }
 

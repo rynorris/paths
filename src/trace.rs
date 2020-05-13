@@ -1,7 +1,7 @@
 use rand::Rng;
 
 use crate::colour::Colour;
-use crate::geom::Ray;
+use crate::geom::{Geometry, Ray};
 use crate::scene::{Entity, Scene};
 
 pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
@@ -40,6 +40,15 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                 break;
             },
             Entity::Object(o) => {
+                // Resolve material at point.
+                let material = match o.geometry {
+                    Geometry::Mesh(mesh) => {
+                        let model = scene.models.get(&mesh.model);
+                        o.material.resolve(&collision, model)
+                    },
+                    _ => o.material,
+                };
+
                 // Next Event Estimation.
                 let direct_illumination = match scene.random_light() {
                     Some(light) => {
@@ -61,7 +70,7 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                             Colour::BLACK
                         } else {
                             let base = light.colour * light.intensity;
-                            let brdf = o.material.brdf(ray.direction * -1, shadow_ray.direction * -1, collision.normal);
+                            let brdf = material.brdf(ray.direction * -1, shadow_ray.direction * -1, collision.normal);
                             base * brdf * inv_pdf
                         }
                     },
@@ -72,7 +81,7 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                 colour += direct_illumination * throughput;
                 colour.check();
 
-                let (direction, pdf, brdf, is_specular) = o.material.sample(ray.direction * -1, collision.normal);
+                let (direction, pdf, brdf, is_specular) = material.sample(ray.direction * -1, collision.normal);
                 last_bounce_specular = is_specular;
 
                 // Next bounce.
@@ -88,7 +97,7 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                     break;
                 }
 
-                let emittance = o.material.emittance(ray.direction * -1, cos_in);
+                let emittance = material.emittance(ray.direction * -1, cos_in);
                 colour += emittance * throughput;
                 
                 // Chance for the material to eat the ray.
