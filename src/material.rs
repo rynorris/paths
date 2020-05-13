@@ -246,7 +246,9 @@ impl GlossMaterial {
         let r0 = self.fresnel_r0;
         let r = r0 + (1.0 - r0) * (1.0 - cos_theta).powf(5.0);
 
-        let specular_chance = r;
+        // For very reflective materials (e.g. metals) sample relative to reflectivity.
+        // For less reflective materials (e.g. plastics) sample at 0.5 to capture highlights.
+        let specular_chance = if r0 > 0.5 { r } else { 0.5 };
         let is_specular = rand::thread_rng().gen::<f64>() <= specular_chance;
 
         if is_specular {
