@@ -3,8 +3,8 @@ use std::f64::consts::PI;
 use rand;
 use rand::Rng;
 
-use crate::scene::ModelLibrary;
 use crate::matrix::Matrix3;
+use crate::model::ModelLibrary;
 use crate::vector::Vector3;
 
 pub fn cosine_sample_hemisphere() -> Vector3 {
@@ -100,8 +100,11 @@ impl Mesh {
         Mesh{ model, translation, rotation, scale }
     }
 
-    pub fn primitives(&self, model_library: &ModelLibrary) -> Vec<Primitive> {
-        model_library.get(&self.model).unwrap().iter()
+    pub fn primitives(&self, model_library: &mut ModelLibrary) -> Vec<Primitive> {
+        model_library.load(&self.model);
+        model_library.get(&self.model)
+            .resolve_primitives()
+            .iter()
             .map(|t| t.transform(self.translation, self.rotation, self.scale))
             .collect()
     }

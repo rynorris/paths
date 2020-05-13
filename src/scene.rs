@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use rand;
 use rand::Rng;
 
@@ -6,6 +5,7 @@ use crate::bvh::{construct_bvh_aac, BVH};
 use crate::colour::Colour;
 use crate::geom::{Collision, Geometry, Primitive, Ray};
 use crate::material::Material;
+use crate::model::ModelLibrary;
 use crate::vector::Vector3;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -63,10 +63,6 @@ pub enum LightGeometry {
     Area(Primitive),
 }
 
-pub type Model = Vec<Primitive>;
-
-pub type ModelLibrary = HashMap<String, Model>;
-
 #[derive(Clone, Copy, Debug)]
 pub enum Skybox {
     Flat(FlatSky),
@@ -112,13 +108,13 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(model_library: ModelLibrary, objects: Vec<Object>, lights: Vec<Light>, skybox: Skybox) -> Scene {
+    pub fn new(mut model_library: ModelLibrary, objects: Vec<Object>, lights: Vec<Light>, skybox: Skybox) -> Scene {
         let object_primitives = objects.iter()
             .map(|o| {
                 let id = o.id;
                 let primitives = match o.geometry {
                     Geometry::Primitive(p) => vec![p],
-                    Geometry::Mesh(ref m) => m.primitives(&model_library),
+                    Geometry::Mesh(ref m) => m.primitives(&mut model_library),
                 };
                 primitives.into_iter().map(move|p| (p, EntityID::Object(id))).collect()
             })

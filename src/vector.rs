@@ -12,6 +12,10 @@ impl Vector3 {
         Vector3 { x, y, z }
     }
 
+    pub fn zero() -> Vector3 {
+        Vector3::new(0.0, 0.0, 0.0)
+    }
+
     pub fn is_nan(&self) -> bool {
         self.x.is_nan() || self.y.is_nan() || self.z.is_nan()
     }

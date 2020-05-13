@@ -6,8 +6,7 @@ use crate::matrix::Matrix3;
 use crate::vector::Vector3;
 use crate::geom;
 use crate::material::{BasicMaterial, Material};
-use crate::obj;
-use crate::ply;
+use crate::model;
 use crate::scene;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -60,34 +59,13 @@ impl SceneDescription {
     }
 
     pub fn scene(&self) -> scene::Scene {
-        let mut model_library: scene::ModelLibrary = HashMap::with_capacity(self.models.len());
+        let mut model_library = model::ModelLibrary::new();
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
         let mut lights: Vec<scene::Light> = Vec::with_capacity(self.lights.len());
 
         self.models.iter().for_each(|(name, desc)| {
-            println!("Loading model '{}' from '{}'", name, desc.file);
-            let path = std::path::Path::new(&desc.file);
-            let extension = path.extension().map(|osstr| osstr.to_str()).flatten();
-            let model = match extension {
-                Some("obj") => {
-                    obj::load_obj_file(&desc.file)
-                        .resolve_triangles()
-                        .iter()
-                        .map(|v| *v)
-                        .collect()
-                },
-                Some("ply") => {
-                    ply::load_ply_file(&desc.file)
-                        .resolve_triangles()
-                        .iter()
-                        .map(|v| *v)
-                        .collect()
-                },
-                Some(ext) => panic!("Unknown file extension: {}", ext),
-                None => panic!("Could not identify filetype for path because it has no extension: {:?}", path),
-            };
-
-            model_library.insert(name.clone(), model);
+            println!("Declaring model '{}' from '{}'", name, desc.file);
+            model_library.declare(name.clone(), desc.file.clone());
         });
 
         self.objects.iter().enumerate().for_each(|(ix, o)| {

@@ -8,6 +8,7 @@ pub mod controller;
 pub mod geom;
 pub mod material;
 pub mod matrix;
+pub mod model;
 #[macro_use] pub mod obj;
 pub mod pixels;
 pub mod ply;
