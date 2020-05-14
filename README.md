@@ -27,6 +27,10 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 
 ### Examples
 
+[2020/05/15] Support for per-vertex colours baked into meshes
+(thanks to [Artec3D](https://www.artec3d.com/3d-models/doom-combat-scene) for this awesome model):
+![image](https://user-images.githubusercontent.com/3620166/81828266-92cee900-9574-11ea-8d76-28f2874c82e8.png)
+
 [2020/05/10] Rewritten large parts of the renderer so that the results match a reference renderer ([Mitsuba](https://www.mitsuba-renderer.org/))
 ![image](https://user-images.githubusercontent.com/3620166/81772760-a1d87b80-9521-11ea-85af-59718edd15cc.png)
 ![image](https://user-images.githubusercontent.com/3620166/81502110-ef34cd00-9316-11ea-8d4b-e122d8d6d901.png)
