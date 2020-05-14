@@ -94,6 +94,14 @@ impl SceneDescription {
                     println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
+
+                    if shp.smooth_normals {
+                        // Ensure vertex normals are pre-calculated if we want smooth normals.
+                        model_library
+                            .get_mut(&shp.model)
+                            .compute_vertex_normals();
+                    }
+
                     geom::Geometry::Mesh(
                         geom::Mesh::new(shp.model.clone(), translation, rotation, shp.scale, shp.smooth_normals)
                     )

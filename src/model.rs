@@ -41,7 +41,7 @@ impl ModelLibrary {
         println!("Loading model '{}' from '{}'", name, filepath);
         let path = std::path::Path::new(&filepath);
         let extension = path.extension().map(|osstr| osstr.to_str()).flatten();
-        let mut model = match extension {
+        let model = match extension {
             Some("obj") => {
                 obj::load_obj_file(&filepath)
             },
@@ -52,13 +52,18 @@ impl ModelLibrary {
             None => panic!("Could not identify filetype for path because it has no extension: {:?}", path),
         };
 
-        model.compute_vertex_normals();
-
         self.models.insert(name.clone(), model);
     }
 
     pub fn get(&self, name: &String) -> &Model {
         match self.models.get(name) {
+            Some(m) => m,
+            None => panic!("Model '{}' has not been loaded", name),
+        }
+    }
+
+    pub fn get_mut(&mut self, name: &String) -> &mut Model {
+        match self.models.get_mut(name) {
             Some(m) => m,
             None => panic!("Model '{}' has not been loaded", name),
         }
@@ -143,6 +148,10 @@ impl Model {
     }
 
     pub fn compute_vertex_normals(&mut self) {
+        if self.vertex_normals.is_some() {
+            return;
+        }
+
         let mut vertex_normal_sums: Vec<Vector3> = vec![Vector3::new(0.0, 0.0, 0.0); self.vertices.len()];
         let mut vertex_normal_counts: Vec<usize> = vec![0; self.vertices.len()];
 
