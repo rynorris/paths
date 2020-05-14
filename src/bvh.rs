@@ -219,8 +219,20 @@ fn build_tree(mut clusters: Vec<(Node, u64)>, max_depth: u16, depth: u16) -> Vec
         (clusters, rhs)
     };
 
-    let mut new_clusters = build_tree(lhs, max_depth, depth + 1);
-    new_clusters.append(&mut build_tree(rhs, max_depth, depth + 1));
+    // Fork threads for first 2 layers.
+    let new_clusters = if depth < 2 {
+        let left_clusters_hdl = std::thread::spawn(move || build_tree(lhs, max_depth, depth + 1));
+        let right_clusters_hdl = std::thread::spawn(move || build_tree(rhs, max_depth, depth + 1));
+        let left_clusters = left_clusters_hdl.join().expect("Asynchronous task succeeded");
+        let mut right_clusters = right_clusters_hdl.join().expect("Asynchronous task succeeded");
+        let mut new_clusters = left_clusters;
+        new_clusters.append(&mut right_clusters);
+        new_clusters
+    } else {
+        let mut new_clusters = build_tree(lhs, max_depth, depth + 1);
+        new_clusters.append(&mut build_tree(rhs, max_depth, depth + 1));
+        new_clusters
+    };
     
     combine_clusters(new_clusters, ccrf(num_clusters))
 }

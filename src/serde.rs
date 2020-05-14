@@ -5,9 +5,8 @@ use crate::colour::Colour;
 use crate::matrix::Matrix3;
 use crate::vector::Vector3;
 use crate::geom;
-use crate::material::{BasicMaterial, Material};
-use crate::obj;
-use crate::ply;
+use crate::material::{BasicMaterial, Material, MaterialColour};
+use crate::model;
 use crate::scene;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -37,6 +36,22 @@ impl ColourDescription {
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum MaterialColourDescription {
+    Rgb { r: f64, g: f64, b: f64 },
+    Vertex,
+}
+
+impl MaterialColourDescription {
+    pub fn to_material_colour(&self) -> MaterialColour {
+        match self {
+            MaterialColourDescription::Rgb { r, g, b } => MaterialColour::Static(Colour::rgb(*r, *g, *b)),
+            MaterialColourDescription::Vertex => MaterialColour::Vertex,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct RotationDescription {
     pub pitch: f64,
     pub yaw: f64,
@@ -60,34 +75,13 @@ impl SceneDescription {
     }
 
     pub fn scene(&self) -> scene::Scene {
-        let mut model_library: scene::ModelLibrary = HashMap::with_capacity(self.models.len());
+        let mut model_library = model::ModelLibrary::new();
         let mut objects: Vec<scene::Object> = Vec::with_capacity(self.objects.len());
         let mut lights: Vec<scene::Light> = Vec::with_capacity(self.lights.len());
 
         self.models.iter().for_each(|(name, desc)| {
-            println!("Loading model '{}' from '{}'", name, desc.file);
-            let path = std::path::Path::new(&desc.file);
-            let extension = path.extension().map(|osstr| osstr.to_str()).flatten();
-            let model = match extension {
-                Some("obj") => {
-                    obj::load_obj_file(&desc.file)
-                        .resolve_triangles()
-                        .iter()
-                        .map(|v| *v)
-                        .collect()
-                },
-                Some("ply") => {
-                    ply::load_ply_file(&desc.file)
-                        .resolve_triangles()
-                        .iter()
-                        .map(|v| *v)
-                        .collect()
-                },
-                Some(ext) => panic!("Unknown file extension: {}", ext),
-                None => panic!("Could not identify filetype for path because it has no extension: {:?}", path),
-            };
-
-            model_library.insert(name.clone(), model);
+            println!("Declaring model '{}' from '{}'", name, desc.file);
+            model_library.declare(name.clone(), desc.file.clone());
         });
 
         self.objects.iter().enumerate().for_each(|(ix, o)| {
@@ -100,8 +94,16 @@ impl SceneDescription {
                     println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
+
+                    if shp.smooth_normals {
+                        // Ensure vertex normals are pre-calculated if we want smooth normals.
+                        model_library
+                            .get_mut(&shp.model)
+                            .compute_vertex_normals();
+                    }
+
                     geom::Geometry::Mesh(
-                        geom::Mesh::new(shp.model.clone(), translation, rotation, shp.scale)
+                        geom::Mesh::new(shp.model.clone(), translation, rotation, shp.scale, shp.smooth_normals)
                     )
                 },
             };
@@ -211,9 +213,16 @@ pub struct SphereDescription {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MeshDescription {
     pub model: String,
+
+    #[serde(default = "default_smooth_normals")]
+    pub smooth_normals: bool,
     pub translation: VectorDescription,
     pub rotation: RotationDescription,
     pub scale: f64,
+}
+
+fn default_smooth_normals() -> bool {
+    true
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -238,8 +247,10 @@ pub enum BasicMaterialDescription {
 impl From<&MaterialDescription> for Material {
     fn from(desc: &MaterialDescription) -> Material {
         match desc {
-            MaterialDescription::Lambertian(mat) => Material::lambertian(mat.albedo.to_colour(), Colour::BLACK),
-            MaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance, mat.metalness),
+            MaterialDescription::Lambertian(mat) => Material::lambertian(
+                mat.albedo.to_material_colour(), Colour::BLACK
+            ),
+            MaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_material_colour(), mat.reflectance, mat.metalness),
             MaterialDescription::Mirror(_mat) => Material::mirror(),
             MaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness),
             MaterialDescription::Fresnel(mat) => 
@@ -255,8 +266,10 @@ impl From<&MaterialDescription> for Material {
 impl From<BasicMaterialDescription> for BasicMaterial {
     fn from(desc: BasicMaterialDescription) -> BasicMaterial {
         match desc {
-            BasicMaterialDescription::Lambertian(mat) => Material::lambertian(mat.albedo.to_colour(), Colour::BLACK).to_basic(),
-            BasicMaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_colour(), mat.reflectance, mat.metalness).to_basic(),
+            BasicMaterialDescription::Lambertian(mat) => Material::lambertian(
+                mat.albedo.to_material_colour(), Colour::BLACK
+            ).to_basic(),
+            BasicMaterialDescription::Gloss(mat) => Material::gloss(mat.albedo.to_material_colour(), mat.reflectance, mat.metalness).to_basic(),
             BasicMaterialDescription::Mirror(_mat) => Material::mirror().to_basic(),
             BasicMaterialDescription::CookTorrance(mat) => Material::cook_torrance(mat.albedo.to_colour(), mat.roughness).to_basic(),
         }
@@ -265,12 +278,12 @@ impl From<BasicMaterialDescription> for BasicMaterial {
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct LambertianMaterialDescription {
-    pub albedo: ColourDescription,
+    pub albedo: MaterialColourDescription,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct GlossMaterialDescription {
-    pub albedo: ColourDescription,
+    pub albedo: MaterialColourDescription,
     pub reflectance: f64,
     pub metalness: f64,
 }

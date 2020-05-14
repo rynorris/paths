@@ -1,11 +1,11 @@
-use std::collections::HashMap;
 use rand;
 use rand::Rng;
 
 use crate::bvh::{construct_bvh_aac, BVH};
 use crate::colour::Colour;
-use crate::geom::{Collision, Geometry, Primitive, Ray};
+use crate::geom::{Collision, CollisionMetadata, Geometry, Primitive, Ray};
 use crate::material::Material;
+use crate::model::ModelLibrary;
 use crate::vector::Vector3;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -63,10 +63,6 @@ pub enum LightGeometry {
     Area(Primitive),
 }
 
-pub type Model = Vec<Primitive>;
-
-pub type ModelLibrary = HashMap<String, Model>;
-
 #[derive(Clone, Copy, Debug)]
 pub enum Skybox {
     Flat(FlatSky),
@@ -106,19 +102,20 @@ pub struct GradientSky {
 
 pub struct Scene {
     pub skybox: Skybox,
+    pub models: ModelLibrary,
     objects: Vec<Object>,
     lights: Vec<Light>,
     bvh: BVH<EntityID>,
 }
 
 impl Scene {
-    pub fn new(model_library: ModelLibrary, objects: Vec<Object>, lights: Vec<Light>, skybox: Skybox) -> Scene {
+    pub fn new(mut models: ModelLibrary, objects: Vec<Object>, lights: Vec<Light>, skybox: Skybox) -> Scene {
         let object_primitives = objects.iter()
             .map(|o| {
                 let id = o.id;
                 let primitives = match o.geometry {
                     Geometry::Primitive(p) => vec![p],
-                    Geometry::Mesh(ref m) => m.primitives(&model_library),
+                    Geometry::Mesh(ref m) => m.primitives(&mut models),
                 };
                 primitives.into_iter().map(move|p| (p, EntityID::Object(id))).collect()
             })
@@ -138,13 +135,31 @@ impl Scene {
         let primitive_geometry = object_primitives.chain(light_primitives).collect();
 
         let bvh = construct_bvh_aac(primitive_geometry);
-        Scene { skybox, objects, lights, bvh }
+        Scene { skybox, models, objects, lights, bvh }
     }
 
     pub fn find_intersection(&self, ray: Ray) -> Option<(Collision, Entity)> {
-        self.bvh.find_intersection(ray).map(|(col, entity)| {
+        self.bvh.find_intersection(ray).map(|(mut col, entity)| {
             match entity {
-                EntityID::Object(id) => Some((col, Entity::Object(self.objects[*id].clone()))),
+                EntityID::Object(id) => {
+                    let obj = &self.objects[*id];
+                    match &obj.geometry {
+                        Geometry::Mesh(mesh) => {
+                            match col.metadata {
+                                CollisionMetadata::Mesh(face_ix, bx, by, bz) => {
+                                    if mesh.smooth_normals {
+                                        let model = self.models.get(&mesh.model);
+                                        let smooth_normal = model.smooth_normal(face_ix, bx, by, bz);
+                                        col.normal = mesh.rotate(smooth_normal);
+                                    }
+                                    Some((col, Entity::Object(obj.clone())))
+                                },
+                                CollisionMetadata::None => panic!("Mesh collision should include metadata"),
+                            }
+                        },
+                        _ => Some((col, Entity::Object(self.objects[*id].clone()))),
+                    }
+                },
                 EntityID::Light(id) => Some((col, Entity::Light(self.lights[*id].clone()))),
             }
         }).flatten()

@@ -8,6 +8,7 @@ pub mod controller;
 pub mod geom;
 pub mod material;
 pub mod matrix;
+pub mod model;
 #[macro_use] pub mod obj;
 pub mod pixels;
 pub mod ply;
@@ -84,7 +85,7 @@ fn main() {
 
     let location = camera.location;
     let orientation = camera.rot;
-    let renderer = Renderer::new(camera, Arc::new(scene), 8);
+    let renderer = Renderer::new(camera, Arc::new(scene), 4);
     let mut controller = Controller::new(renderer, location, orientation);
 
     let mut texture_buffer: Vec<u8> = vec![0; (width * height * 3) as usize];

@@ -43,14 +43,15 @@ fn random_sphere() -> serde::ShapeDescription {
 fn random_material() -> serde::MaterialDescription {
     let mut rng = rand::thread_rng();
     let choice = rng.gen_range(0, 3);
+    let colour = random_colour();
     match choice {
         0 => serde::MaterialDescription::Gloss(serde::GlossMaterialDescription{
-            albedo: random_colour(),
+            albedo: serde::MaterialColourDescription::Rgb { r: colour.r, g: colour.g, b: colour.b },
             reflectance: 1.0 + rng.gen::<f64>() * 2.0,
             metalness: 0.0,
         }),
         1 => serde::MaterialDescription::Lambertian(serde::LambertianMaterialDescription{
-            albedo: random_colour(),
+            albedo: serde::MaterialColourDescription::Rgb { r: colour.r, g: colour.g, b: colour.b },
         }),
         _ => serde::MaterialDescription::Mirror(serde::MirrorMaterialDescription{}),
     }
