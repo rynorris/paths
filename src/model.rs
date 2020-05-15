@@ -76,6 +76,7 @@ pub struct Model {
     pub face_normals: Vec<Vector3>,
     pub vertex_normals: Option<Vec<Vector3>>,
     pub vertex_colours: Option<Vec<Colour>>,
+    pub texture_coords: Option<Vec<(f64, f64)>>,
 }
 
 impl Model {
@@ -88,11 +89,16 @@ impl Model {
             face_normals,
             vertex_normals: None,
             vertex_colours: None,
+            texture_coords: None,
         }
     }
 
     pub fn attach_vertex_colours(&mut self, vertex_colours: Vec<Colour>) {
         self.vertex_colours = Some(vertex_colours);
+    }
+
+    pub fn attach_texture_coords(&mut self, texture_coords: Vec<(f64, f64)>) {
+        self.texture_coords = Some(texture_coords);
     }
 
     pub fn smooth_normal(&self, face_ix: usize, bx: f64, by: f64, bz: f64) -> Vector3 {
