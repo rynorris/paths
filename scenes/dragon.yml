@@ -36,7 +36,7 @@ objects:
       scale: 40.0
     material:
       type: Gloss
-      albedo: { r: 0.92, g: 0.78, b: 0.40 }
+      albedo: { type: Rgb, r: 0.92, g: 0.78, b: 0.40 }
       reflectance: 1.0
       metalness: 1.0
 
@@ -46,7 +46,7 @@ objects:
       center: { x: 0.0, y: -1000000.0, z: 0.0 }
     material:
       type: Lambertian
-      albedo: { r: 0.5, g: 0.5, b: 0.5 }
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }
 
   - shape:
       type: Sphere
@@ -54,7 +54,7 @@ objects:
       center: { x: 0.0, y: 1000020.0, z: 0.0 }
     material:
       type: Lambertian
-      albedo: { r: 0.5, g: 0.5, b: 0.5 }
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }
 
   - shape:
       type: Sphere
@@ -62,7 +62,7 @@ objects:
       center: { x: 0.0, y: 0.0, z: 1000010.0 }
     material:
       type: Lambertian
-      albedo: { r: 0.5, g: 0.5, b: 0.5 }
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }
 
   - shape:
       type: Sphere
@@ -70,7 +70,7 @@ objects:
       center: { x: 0.0, y: 0.0, z: -1000020.0 }
     material:
       type: Lambertian
-      albedo: { r: 0.5, g: 0.5, b: 0.5 }
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }
 
   - shape:
       type: Sphere
@@ -78,7 +78,7 @@ objects:
       center: { x: -1000010.0, y: 0.0, z: 0.0 }
     material:
       type: Lambertian
-      albedo: { r: 0.5, g: 0.5, b: 0.5 }
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }
 
   - shape:
       type: Sphere
@@ -86,4 +86,4 @@ objects:
       center: { x: 1000010.0, y: 0.0, z: 0.0 }
     material:
       type: Lambertian
-      albedo: { r: 0.5, g: 0.5, b: 0.5 }
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }

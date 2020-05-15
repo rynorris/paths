@@ -95,6 +95,9 @@ impl SceneDescription {
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
 
+                    // Ensure model is loaded.
+                    model_library.load(&shp.model);
+
                     if shp.smooth_normals {
                         // Ensure vertex normals are pre-calculated if we want smooth normals.
                         model_library
