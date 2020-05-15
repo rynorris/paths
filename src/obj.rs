@@ -27,5 +27,18 @@ pub fn convert_model(obj_model: &tobj::Model) -> Model {
             (indices[0] as usize, indices[1] as usize, indices[2] as usize)
         }).collect();
 
-    Model::new(vertices, faces)
+    let mut model = Model::new(vertices, faces);
+
+    let texcoords = &obj_model.mesh.texcoords;
+    if texcoords.len() > 0 {
+        let texture_coords = texcoords
+            .chunks_exact(2)
+            .map(|coords| {
+                (coords[0] as f64, coords[1] as f64)
+            }).collect();
+
+        model.attach_texture_coords(texture_coords);
+    }
+
+    model
 }
