@@ -109,7 +109,6 @@ impl Mesh {
     }
 
     pub fn primitives(&self, model_library: &mut ModelLibrary) -> Vec<Primitive> {
-        model_library.load(&self.model);
         model_library.get(&self.model)
             .resolve_primitives()
             .iter()

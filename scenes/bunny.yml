@@ -37,7 +37,7 @@ objects:
       scale: 20.0
     material:
       type: Gloss
-      albedo: { r: 0.8, g: 0.3, b: 0.3 }
+      albedo: { type: Rgb, r: 0.8, g: 0.3, b: 0.3 }
       reflectance: 0.8
       metalness: 1.0
 
@@ -47,7 +47,7 @@ objects:
       center: { x: 3.0, y: 1.0, z: 3.0 }
     material:
       type: Gloss
-      albedo: { r: 0.3, g: 0.3, b: 0.8 }
+      albedo: { type: Rgb, r: 0.3, g: 0.3, b: 0.8 }
       reflectance: 0.04
       metalness: 0.0
 
@@ -57,7 +57,7 @@ objects:
       center: { x: 0.0, y: -1000000.0, z: 0.0 }
     material:
       type: Gloss
-      albedo: { r: 0.5, g: 0.5, b: 0.5 }
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }
       reflectance: 0.04
       metalness: 0.0
 
@@ -67,7 +67,7 @@ objects:
       center: { x: 0.0, y: 0.0, z: 1000010.0 }
     material:
       type: Gloss
-      albedo: { r: 0.5, g: 0.5, b: 0.5 }
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }
       reflectance: 0.04
       metalness: 0.0
 
