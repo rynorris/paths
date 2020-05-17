@@ -93,7 +93,14 @@ impl Skybox {
                 sky.overhead_colour * cos_theta + sky.horizon_colour * (1.0 - cos_theta)
             },
             Skybox::Hdri(sky) => {
-                Colour::BLACK
+                let w = sky.width as f64;
+                let h = sky.height as f64;
+                let x = w / 2.0 * direction.x + w / 2.0;
+                let y = h / 2.0 * direction.y + h / 2.0;
+                let x_pix = u32::min(sky.width, x as u32);
+                let y_pix = u32::min(sky.height, y as u32);
+                let pix = y_pix * sky.width + x_pix;
+                sky.data[pix as usize]
             },
         }
     }

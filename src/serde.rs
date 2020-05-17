@@ -365,6 +365,8 @@ impl SkyboxDescription {
                 sky.horizon_colour.to_colour(),
             ),
             SkyboxDescription::Hdri(sky) => {
+                println!("Loading HDRI environment map: {}", sky.filename);
+
                 let f = File::open(&sky.filename).unwrap();
                 let reader = BufReader::new(f);
                 let decoder = hdr::HdrDecoder::new(reader).unwrap();
@@ -373,6 +375,8 @@ impl SkyboxDescription {
                 let colour_data = rgb_data.iter()
                     .map(|rgb| Colour::rgb(rgb[0] as f64, rgb[1] as f64, rgb[2] as f64))
                     .collect();
+
+                println!("Loaded HDRI file with metadata: {:?}", metadata);
 
                 scene::Skybox::hdri(metadata.width, metadata.height, colour_data)
             },
