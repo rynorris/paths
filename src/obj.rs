@@ -12,7 +12,11 @@ pub fn load_obj_file(filename: &str) -> Vec<Model> {
         .map(|m| convert_material(m))
         .collect();
 
-    let models = obj_models.iter().map(|m| convert_model(m, &materials)).collect();
+    println!("Loaded {} materials", materials.len());
+
+    let models: Vec<Model> = obj_models.iter().map(|m| convert_model(m, &materials)).collect();
+
+    println!("Loaded {} models", models.len());
 
     models
 }
@@ -35,10 +39,13 @@ fn convert_model(obj_model: &tobj::Model, materials: &Vec<Material>) -> Model {
             (indices[0] as usize, indices[1] as usize, indices[2] as usize)
         }).collect();
 
+    println!("Loaded model with {} vertices and {} faces", vertices.len(), faces.len());
+
     let mut model = Model::new(vertices, faces);
 
     let texcoords = &obj_model.mesh.texcoords;
     if texcoords.len() > 0 {
+        println!("Model has texture coordinates");
         let texture_coords = texcoords
             .chunks_exact(2)
             .map(|coords| {
@@ -50,6 +57,7 @@ fn convert_model(obj_model: &tobj::Model, materials: &Vec<Material>) -> Model {
 
     match obj_model.mesh.material_id {
         Some(mat) => {
+            println!("Model has associated material");
             model.attach_material(materials[mat]);
         },
         None => (),

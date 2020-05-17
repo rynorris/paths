@@ -85,11 +85,12 @@ impl SceneDescription {
         });
 
         self.objects.iter().for_each(|o| {
-            let material: Material = (&o.material).into();
             match o.shape {
                 ShapeDescription::Sphere(ref shp) => {
                     let obj_ix = objects.len();
                     let geometry = geom::Geometry::Primitive(geom::Primitive::sphere(shp.center.to_vector(), shp.radius));
+                    let material: Material = (&o.material).into();
+
                     objects.push(scene::Object{
                         id: obj_ix,
                         geometry,
@@ -117,6 +118,13 @@ impl SceneDescription {
                         let geometry = geom::Geometry::Mesh(
                             geom::Mesh::new(*ix, translation, rotation, shp.scale, shp.smooth_normals)
                         );
+
+                        let material: Material = match o.material {
+                            MaterialDescription::Auto => model_library.get(*ix).material.unwrap_or(
+                                Material::lambertian(MaterialColour::Static(Colour::WHITE), Colour::BLACK)
+                           ),
+                            _ => (&o.material).into(),
+                        };
 
                         objects.push(scene::Object{
                             id: obj_ix,
@@ -242,6 +250,7 @@ fn default_smooth_normals() -> bool {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum MaterialDescription {
+    Auto,
     Lambertian(LambertianMaterialDescription),
     Gloss(GlossMaterialDescription),
     Mirror(MirrorMaterialDescription),
@@ -261,6 +270,7 @@ pub enum BasicMaterialDescription {
 impl From<&MaterialDescription> for Material {
     fn from(desc: &MaterialDescription) -> Material {
         match desc {
+            MaterialDescription::Auto => panic!("Cannot directly convert Auto material description into material."),
             MaterialDescription::Lambertian(mat) => Material::lambertian(
                 mat.albedo.to_material_colour(), Colour::BLACK
             ),
