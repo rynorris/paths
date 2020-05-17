@@ -1,6 +1,8 @@
 use rand;
 use rand::Rng;
 
+use image::hdr;
+
 use crate::bvh::{construct_bvh_aac, BVH};
 use crate::colour::Colour;
 use crate::geom::{Collision, CollisionMetadata, Geometry, Primitive, Ray};
@@ -63,10 +65,11 @@ pub enum LightGeometry {
     Area(Primitive),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Skybox {
     Flat(FlatSky),
     Gradient(GradientSky),
+    Hdri(HdriSky),
 }
 
 impl Skybox {
@@ -78,12 +81,19 @@ impl Skybox {
         Skybox::Gradient(GradientSky{ overhead_colour, horizon_colour })
     }
 
+    pub fn hdri(width: usize, height: usize, data: Vec<Colour>) -> Skybox {
+        Skybox::Hdri(HdriSky{ width, height, data })
+    }
+
     pub fn ambient_light(&self, direction: Vector3) -> Colour {
         match self {
             Skybox::Flat(sky) => sky.colour,
             Skybox::Gradient(sky) => {
                 let cos_theta = direction.dot(Vector3::new(0.0, 1.0, 0.0));
                 sky.overhead_colour * cos_theta + sky.horizon_colour * (1.0 - cos_theta)
+            },
+            Skybox::Hdri(sky) => {
+                Colour::BLACK
             },
         }
     }
@@ -98,6 +108,13 @@ pub struct FlatSky {
 pub struct GradientSky {
     pub overhead_colour: Colour,
     pub horizon_colour: Colour,
+}
+
+#[derive(Clone, Debug)]
+pub struct HdriSky {
+    pub width: usize,
+    pub height: usize,
+    pub data: Vec<Colour>,
 }
 
 pub struct Scene {
