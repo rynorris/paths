@@ -1,0 +1,47 @@
+camera:
+  image_width: 720
+  image_height: 480
+  location: { x: 0.0, y: 300.0, z: -500.0 }
+  orientation: { pitch: 0.3, yaw: 0.0, roll: 0.0 }
+  sensor_width: 0.036
+  sensor_height: 0.024
+  focal_length: 0.043
+  focus_distance: 300.0
+  aperture: 2.0
+
+skybox:
+  type: Gradient
+  overhead_colour: { r: 0.0, g: 0.0, b: 0.0 }
+  horizon_colour: { r: 0.0, g: 0.0, b: 0.0 }
+
+models:
+  doom:
+    file: "./assets/IronMan/IronMan.obj"
+
+lights:
+  - colour: { r: 1.0, g: 1.0, b: 1.0 }
+    intensity: 60.0
+    geometry:
+      type: Sphere
+      center: { x: 0.0, y: 500.0, z: 0.0 }
+      radius: 50.0
+
+objects:
+  - shape:
+      type: Mesh
+      model: doom
+      smooth_normals: true
+      translation: { x: 0.0, y: -2.2, z: 0.0 }
+      rotation: { pitch: 3.0, yaw: 0.0, roll: 0.0 }
+      scale: 1.0
+    material:
+      type: Auto
+
+  - shape:
+      type: Sphere
+      radius: 1000000.0
+      center: { x: 0.0, y: -1000140.0, z: 0.0 }
+    material:
+      type: Lambertian
+      albedo: { type: Rgb, r: 0.5, g: 0.5, b: 0.5 }
+

@@ -43,7 +43,7 @@ pub fn trace_ray(scene: &Scene, mut ray: Ray) -> Colour {
                 // Resolve material at point.
                 let material = match o.geometry {
                     Geometry::Mesh(mesh) => {
-                        let model = scene.models.get(&mesh.model);
+                        let model = scene.models.get(mesh.model);
                         o.material.resolve(&collision, model)
                     },
                     _ => o.material,

@@ -84,38 +84,57 @@ impl SceneDescription {
             model_library.declare(name.clone(), desc.file.clone());
         });
 
-        self.objects.iter().enumerate().for_each(|(ix, o)| {
-            let material: Material = (&o.material).into();
-            let geometry: geom::Geometry = match o.shape {
-                ShapeDescription::Sphere(ref shp) => geom::Geometry::Primitive(
-                    geom::Primitive::sphere(shp.center.to_vector(), shp.radius)
-                ),
+        self.objects.iter().for_each(|o| {
+            match o.shape {
+                ShapeDescription::Sphere(ref shp) => {
+                    let obj_ix = objects.len();
+                    let geometry = geom::Geometry::Primitive(geom::Primitive::sphere(shp.center.to_vector(), shp.radius));
+                    let material: Material = (&o.material).into();
+
+                    objects.push(scene::Object{
+                        id: obj_ix,
+                        geometry,
+                        material,
+                    });
+                },
                 ShapeDescription::Mesh(ref shp) => {
                     println!("Constructing object using model '{}'", shp.model);
                     let translation = shp.translation.to_vector();
                     let rotation = Matrix3::rotation(shp.rotation.pitch, shp.rotation.yaw, shp.rotation.roll);
 
                     // Ensure model is loaded.
-                    model_library.load(&shp.model);
+                    let model_indices = model_library.load(&shp.model);
 
-                    if shp.smooth_normals {
-                        // Ensure vertex normals are pre-calculated if we want smooth normals.
-                        model_library
-                            .get_mut(&shp.model)
-                            .compute_vertex_normals();
-                    }
+                    model_indices.iter().for_each(|ix| {
+                        let obj_ix = objects.len();
 
-                    geom::Geometry::Mesh(
-                        geom::Mesh::new(shp.model.clone(), translation, rotation, shp.scale, shp.smooth_normals)
-                    )
+                        if shp.smooth_normals {
+                            // Ensure vertex normals are pre-calculated if we want smooth normals.
+                            model_library
+                                .get_mut(*ix)
+                                .compute_vertex_normals();
+                        }
+
+                        let geometry = geom::Geometry::Mesh(
+                            geom::Mesh::new(*ix, translation, rotation, shp.scale, shp.smooth_normals)
+                        );
+
+                        let material: Material = match o.material {
+                            MaterialDescription::Auto => model_library.get(*ix).material.unwrap_or(
+                                Material::lambertian(MaterialColour::Static(Colour::WHITE), Colour::BLACK)
+                           ),
+                            _ => (&o.material).into(),
+                        };
+
+                        objects.push(scene::Object{
+                            id: obj_ix,
+                            geometry,
+                            material,
+                        });
+                    });
                 },
             };
 
-            objects.push(scene::Object{
-                id: ix,
-                geometry,
-                material,
-            });
         });
 
         self.lights.iter().enumerate().for_each(|(ix, l)| {
@@ -231,6 +250,7 @@ fn default_smooth_normals() -> bool {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum MaterialDescription {
+    Auto,
     Lambertian(LambertianMaterialDescription),
     Gloss(GlossMaterialDescription),
     Mirror(MirrorMaterialDescription),
@@ -250,6 +270,7 @@ pub enum BasicMaterialDescription {
 impl From<&MaterialDescription> for Material {
     fn from(desc: &MaterialDescription) -> Material {
         match desc {
+            MaterialDescription::Auto => panic!("Cannot directly convert Auto material description into material."),
             MaterialDescription::Lambertian(mat) => Material::lambertian(
                 mat.albedo.to_material_colour(), Colour::BLACK
             ),
