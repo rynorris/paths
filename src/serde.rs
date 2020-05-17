@@ -1,4 +1,8 @@
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::BufReader;
+
+use image::hdr;
 
 use crate::camera::Camera;
 use crate::colour::Colour;
@@ -328,11 +332,12 @@ pub struct FresnelMaterialDescription {
     pub specular: BasicMaterialDescription,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum SkyboxDescription {
     Flat(FlatSkyboxDescription),
     Gradient(GradientSkyboxDescription),
+    Hdri(HdriSkyboxDescription),
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -346,6 +351,11 @@ pub struct GradientSkyboxDescription {
     pub horizon_colour: ColourDescription,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct HdriSkyboxDescription {
+    pub filename: String,
+}
+
 impl SkyboxDescription {
     pub fn to_skybox(&self) -> scene::Skybox {
         match self {
@@ -354,6 +364,18 @@ impl SkyboxDescription {
                 sky.overhead_colour.to_colour(),
                 sky.horizon_colour.to_colour(),
             ),
+            SkyboxDescription::Hdri(sky) => {
+                let f = File::open(&sky.filename).unwrap();
+                let reader = BufReader::new(f);
+                let decoder = hdr::HdrDecoder::new(reader).unwrap();
+                let metadata = decoder.metadata();
+                let rgb_data = decoder.read_image_hdr().unwrap();
+                let colour_data = rgb_data.iter()
+                    .map(|rgb| Colour::rgb(rgb[0] as f64, rgb[1] as f64, rgb[2] as f64))
+                    .collect();
+
+                scene::Skybox::hdri(metadata.width, metadata.height, colour_data)
+            },
         }
     }
 }

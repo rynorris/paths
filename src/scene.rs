@@ -81,7 +81,7 @@ impl Skybox {
         Skybox::Gradient(GradientSky{ overhead_colour, horizon_colour })
     }
 
-    pub fn hdri(width: usize, height: usize, data: Vec<Colour>) -> Skybox {
+    pub fn hdri(width: u32, height: u32, data: Vec<Colour>) -> Skybox {
         Skybox::Hdri(HdriSky{ width, height, data })
     }
 
@@ -112,8 +112,8 @@ pub struct GradientSky {
 
 #[derive(Clone, Debug)]
 pub struct HdriSky {
-    pub width: usize,
-    pub height: usize,
+    pub width: u32,
+    pub height: u32,
     pub data: Vec<Colour>,
 }
 
