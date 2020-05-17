@@ -35,7 +35,7 @@ use sdl2;
 use sdl2::keyboard::{Keycode, Scancode};
 use serde_yaml;
 
-const SCALE: u32 = 1;
+const SCALE: u32 = 2;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -136,6 +136,9 @@ fn main() {
                        mouse.show_cursor(camera_locked);
                        if !camera_locked {
                            controller.reset();
+                       } else {
+                           println!("Camera locked.");
+                           controller.print_camera_location();
                        }
                    },
                    Some(Keycode::Q) => controller.rotate(0.0, 0.0, -0.1),

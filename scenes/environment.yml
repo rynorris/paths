@@ -1,8 +1,8 @@
 camera:
   image_width: 720
   image_height: 480
-  location: { x: 3.0, y: 0.0, z: -10.0 }
-  orientation: { pitch: 0.0, yaw: -0.2, roll: 0.0 }
+  location: { x: -1.1, y: -0.24, z: -5.2 }
+  orientation: { pitch: -0.03, yaw: -0.2, roll: 0.0 }
   sensor_width: 0.036
   sensor_height: 0.024
   focal_length: 0.05
@@ -14,41 +14,41 @@ skybox:
   filename: "./assets/environments/tears_of_steel_bridge_4k.hdr"
 
 models:
-  bunny:
-    file: "./scenes/objects/bunny.obj"
-  teapot:
-    file: "./scenes/objects/teapot.obj"
   dragon:
     file: "./assets/dragon_recon/dragon_vrip.ply"
+  table:
+    file: "./assets/round_table_with_tablecloth/13493_Round_Table_with_Tablecloth_v1_L3.obj"
 
-lights:
-  - colour: { r: 0.8, g: 0.8, b: 1.0 }
-    intensity: 200.0
-    geometry:
-      type: Sphere
-      center: { x: 5.0, y: 10.0, z: -5.0 }
-      radius: 1.0
+lights: []
 
 objects:
   - shape:
       type: Sphere
-      radius: 1.0
-      center: { x: -2.0, y: -1.0, z: 3.0 }
+      radius: 0.5
+      center: { x: -1.0, y: -0.5, z: -0.5 }
     material:
       type: Gloss
       albedo: { type: Rgb, r: 1.0, g: 1.0, b: 1.0 }
       reflectance: 1.0
       metalness: 1.0
-
   - shape:
       type: Mesh
       model: dragon
-      smooth_normals: false
-      translation: { x: 2.0, y: -3.2, z: 0.0 }
-      rotation: { pitch: 3.8, yaw: 0.0, roll: 0.0 }
-      scale: 20.0
+      smooth_normals: true
+      translation: { x: -2.8, y: -1.5, z: -0.8 }
+      rotation: { pitch: 3.6, yaw: 0.0, roll: 0.0 }
+      scale: 10.0
     material:
       type: Gloss
       albedo: { type: Rgb, r: 0.92, g: 0.78, b: 0.40 }
       reflectance: 1.0
       metalness: 1.0
+  - shape:
+      type: Mesh
+      model: table
+      smooth_normals: false
+      translation: { x: -2.0, y: -4.0, z: 0.0 }
+      rotation: { pitch: 0.0, yaw: -1.6, roll: 0.0 }
+      scale: 0.15
+    material:
+      type: Auto
