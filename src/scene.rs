@@ -148,7 +148,7 @@ impl Scene {
                             match col.metadata {
                                 CollisionMetadata::Mesh(face_ix, bx, by, bz) => {
                                     if mesh.smooth_normals {
-                                        let model = self.models.get(&mesh.model);
+                                        let model = self.models.get(mesh.model);
                                         let smooth_normal = model.smooth_normal(face_ix, bx, by, bz);
                                         col.normal = mesh.rotate(smooth_normal);
                                     }

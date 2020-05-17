@@ -96,7 +96,7 @@ pub enum Geometry {
 
 #[derive(Clone, Debug)]
 pub struct Mesh {
-    pub model: String,
+    pub model: usize,
     pub smooth_normals: bool,
     translation: Vector3,
     rotation: Matrix3,
@@ -104,12 +104,12 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(model: String, translation: Vector3, rotation: Matrix3, scale: f64, smooth_normals: bool) -> Mesh {
+    pub fn new(model: usize, translation: Vector3, rotation: Matrix3, scale: f64, smooth_normals: bool) -> Mesh {
         Mesh{ model, translation, rotation, scale, smooth_normals }
     }
 
     pub fn primitives(&self, model_library: &mut ModelLibrary) -> Vec<Primitive> {
-        model_library.get(&self.model)
+        model_library.get(self.model)
             .resolve_primitives()
             .iter()
             .map(|t| t.transform(self.translation, self.rotation, self.scale))

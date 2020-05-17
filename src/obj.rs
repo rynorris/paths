@@ -1,20 +1,28 @@
 use tobj;
 
+use crate::colour::Colour;
+use crate::material::{Material, MaterialColour};
 use crate::model::Model;
 use crate::vector::Vector3;
 
-pub fn load_obj_file(filename: &str) -> Model {
-    let (models, _materials) = tobj::load_obj(filename, true).expect("Failed to load obj file");
-    if models.len() > 1 {
-        panic!("Obj file '{}' contains more than 1 model.  This is unsupported.", filename);
-    }
+pub fn load_obj_file(filename: &str) -> Vec<Model> {
+    let (obj_models, obj_materials) = tobj::load_obj(filename, true).expect("Failed to load obj file");
 
-    let model = &models[0];
+    let materials: Vec<Material> = obj_materials.iter()
+        .map(|m| convert_material(m))
+        .collect();
 
-    convert_model(model)
+    let models = obj_models.iter().map(|m| convert_model(m, &materials)).collect();
+
+    models
 }
 
-pub fn convert_model(obj_model: &tobj::Model) -> Model {
+fn convert_material(obj_material: &tobj::Material) -> Material {
+    // TODO: Flesh out.
+    Material::lambertian(MaterialColour::Static(array_to_colour(obj_material.diffuse)), Colour::BLACK)
+}
+
+fn convert_model(obj_model: &tobj::Model, materials: &Vec<Material>) -> Model {
     let vertices: Vec<Vector3> = obj_model.mesh.positions
         .chunks_exact(3)
         .map(|coords| {
@@ -40,5 +48,16 @@ pub fn convert_model(obj_model: &tobj::Model) -> Model {
         model.attach_texture_coords(texture_coords);
     }
 
+    match obj_model.mesh.material_id {
+        Some(mat) => {
+            model.attach_material(materials[mat]);
+        },
+        None => (),
+    }
+
     model
+}
+
+fn array_to_colour(rgb: [f32; 3]) -> Colour {
+    Colour::rgb(rgb[0] as f64, rgb[1] as f64, rgb[2] as f64)
 }
