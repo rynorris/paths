@@ -21,11 +21,16 @@ It is purely a hobby-project for me to learn about this technology, and I had no
 - [x] Microfacet specular model
 - [x] Camera lens simulation
 - [x] Next event estimation
+- [x] HDRI Environment maps
 - [ ] Translucent materials (refraction)
 - [ ] Subsurface scattering
 - [ ] Bi-directional path tracing
 
 ### Examples
+
+[2020/05/23] Support for HDRI environment maps
+(thanks for [HDRI Haven](https://hdrihaven.com/) for the HDRIs!)
+![image](https://user-images.githubusercontent.com/3620166/82724590-1ecdd700-9d12-11ea-8814-d0010b949349.png)
 
 [2020/05/15] Support for per-vertex colours baked into meshes
 (thanks to [Artec3D](https://www.artec3d.com/3d-models/doom-combat-scene) for this awesome model):
