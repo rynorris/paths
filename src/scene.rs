@@ -1,7 +1,7 @@
+use std::f64::consts::PI;
+
 use rand;
 use rand::Rng;
-
-use image::hdr;
 
 use crate::bvh::{construct_bvh_aac, BVH};
 use crate::colour::Colour;
@@ -93,12 +93,19 @@ impl Skybox {
                 sky.overhead_colour * cos_theta + sky.horizon_colour * (1.0 - cos_theta)
             },
             Skybox::Hdri(sky) => {
+                // Equirectangular projection.
+                let lat = direction.y.acos();  // Spherical coords theta. [0, pi)
+                let long = direction.z.atan2(direction.x);  // Spherical coords phi. (-pi, pi]
+
                 let w = sky.width as f64;
                 let h = sky.height as f64;
-                let x = w / 2.0 * direction.x + w / 2.0;
-                let y = h / 2.0 * direction.y + h / 2.0;
-                let x_pix = u32::min(sky.width, x as u32);
-                let y_pix = u32::min(sky.height, y as u32);
+
+                // Adjust and scale.
+                let x = w / 2.0 * (long / PI) + w / 2.0;
+                let y = h * (1.0 - lat / PI);
+
+                let x_pix = u32::min(sky.width - 1, x as u32);
+                let y_pix = u32::min(sky.height - 1, y as u32);
                 let pix = y_pix * sky.width + x_pix;
                 sky.data[pix as usize]
             },

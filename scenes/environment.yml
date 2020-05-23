@@ -11,7 +11,7 @@ camera:
 
 skybox:
   type: Hdri
-  filename: "./assets/environments/tears_of_steel_bridge_4k.hdr"
+  filename: "./assets/environments/spruit_sunrise_4k.hdr"
 
 models:
   dragon:
