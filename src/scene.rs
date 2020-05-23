@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use rand;
 use rand::Rng;
 
@@ -63,10 +65,11 @@ pub enum LightGeometry {
     Area(Primitive),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Skybox {
     Flat(FlatSky),
     Gradient(GradientSky),
+    Hdri(HdriSky),
 }
 
 impl Skybox {
@@ -78,12 +81,33 @@ impl Skybox {
         Skybox::Gradient(GradientSky{ overhead_colour, horizon_colour })
     }
 
+    pub fn hdri(width: u32, height: u32, data: Vec<Colour>) -> Skybox {
+        Skybox::Hdri(HdriSky{ width, height, data })
+    }
+
     pub fn ambient_light(&self, direction: Vector3) -> Colour {
         match self {
             Skybox::Flat(sky) => sky.colour,
             Skybox::Gradient(sky) => {
                 let cos_theta = direction.dot(Vector3::new(0.0, 1.0, 0.0));
                 sky.overhead_colour * cos_theta + sky.horizon_colour * (1.0 - cos_theta)
+            },
+            Skybox::Hdri(sky) => {
+                // Equirectangular projection.
+                let lat = direction.y.acos();  // Spherical coords theta. [0, pi)
+                let long = direction.z.atan2(direction.x);  // Spherical coords phi. (-pi, pi]
+
+                let w = sky.width as f64;
+                let h = sky.height as f64;
+
+                // Adjust and scale.
+                let x = w / 2.0 * (long / PI) + w / 2.0;
+                let y = h * (1.0 - lat / PI);
+
+                let x_pix = u32::min(sky.width - 1, x as u32);
+                let y_pix = u32::min(sky.height - 1, y as u32);
+                let pix = y_pix * sky.width + x_pix;
+                sky.data[pix as usize]
             },
         }
     }
@@ -98,6 +122,13 @@ pub struct FlatSky {
 pub struct GradientSky {
     pub overhead_colour: Colour,
     pub horizon_colour: Colour,
+}
+
+#[derive(Clone, Debug)]
+pub struct HdriSky {
+    pub width: u32,
+    pub height: u32,
+    pub data: Vec<Colour>,
 }
 
 pub struct Scene {

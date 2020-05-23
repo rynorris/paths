@@ -64,4 +64,8 @@ impl Controller {
     pub fn num_rays_cast(&self) -> u64{
         self.renderer.num_rays_cast()
     }
+
+    pub fn print_camera_location(&self) {
+        println!("Location: {:?}", self.location);
+    }
 }
